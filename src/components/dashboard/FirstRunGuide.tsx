@@ -22,7 +22,7 @@ export function FirstRunGuide() {
       <div className="heading">
         <div>
           <h2>はじめ方</h2>
-          <p className="subtitle">この3つだけで記録できます。</p>
+          <p className="subtitle">最初はこの3つだけ覚えておけば大丈夫です。</p>
         </div>
         <Button
           variant="ghost"
@@ -50,7 +50,7 @@ export function FirstRunGuide() {
       </ol>
       <Link href="/records/new" className="button primary guide-action">
         <PlusCircle size={18} />
-        登録する
+        はじめる
       </Link>
     </Card>
   );

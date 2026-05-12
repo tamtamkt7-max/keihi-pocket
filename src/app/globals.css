@@ -263,6 +263,33 @@ body { min-height: 100vh; }
   gap: 10px;
 }
 
+.login-flow-card,
+.home-intro-card {
+  border-color: rgba(17, 120, 101, 0.18);
+  background: linear-gradient(180deg, #ffffff, #f7fcfa);
+}
+
+.home-intro-copy {
+  display: grid;
+  gap: 10px;
+}
+
+.home-intro-copy h2 {
+  margin: 0;
+  font-size: clamp(26px, 4vw, 38px);
+  line-height: 1.12;
+}
+
+.home-intro-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.home-intro-actions .button {
+  min-width: 148px;
+}
+
 .login-panel {
   padding: 16px;
   border-radius: 8px;
@@ -1027,6 +1054,13 @@ body { min-height: 100vh; }
   .dashboard-hero { align-items: flex-start; flex-direction: column; }
   .guide-steps { grid-template-columns: 1fr; }
   .guide-action { width: 100%; }
+  .home-intro-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+  .home-intro-actions .button {
+    width: 100%;
+  }
   .heading {
     align-items: flex-start;
     flex-direction: column;

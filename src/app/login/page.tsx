@@ -114,11 +114,34 @@ export default function LoginPage() {
           <div className="section">
             <div className="login-brand">
               <span className="badge primary">経費ポケット</span>
-              <h1 style={{ margin: "0 0 8px" }}>レシートを撮って、まとめる</h1>
+              <h1 style={{ margin: "0 0 8px" }}>レシート管理を、もっとかんたんに。</h1>
               <p className="subtitle" style={{ margin: 0 }}>
-                レシートを撮って、経費と売上をまとめて管理。
+                レシートを撮って、内容を確認して保存。あとから一覧や集計でまとめて見返せます。
               </p>
             </div>
+
+            <Card className="list-card login-flow-card">
+              <div className="heading" style={{ marginBottom: 0 }}>
+                <div>
+                  <h3>使い方はこの流れです。</h3>
+                  <p className="subtitle">はじめてでも、数分で使い始められます。</p>
+                </div>
+              </div>
+              <ol className="guide-steps" aria-label="使い方">
+                <li>
+                  <span>1</span>
+                  <strong>レシートを撮る</strong>
+                </li>
+                <li>
+                  <span>2</span>
+                  <strong>内容を確認する</strong>
+                </li>
+                <li>
+                  <span>3</span>
+                  <strong>保存して集計を見る</strong>
+                </li>
+              </ol>
+            </Card>
 
             <div className="stack-sm">
               {firebaseEnabled ? (
@@ -212,7 +235,7 @@ export default function LoginPage() {
                       <div>
                         <strong>まずはお試しで使う</strong>
                         <div className="subtitle" style={{ marginTop: 6 }}>
-                          お試し中の記録は、この端末だけに保存されます。
+                          今の記録はこの端末だけに保存されます。あとからログインして続けられます。
                         </div>
                       </div>
                       <LoginButton mode="demo" onError={setError} />
@@ -223,9 +246,9 @@ export default function LoginPage() {
                 <div className="card login-panel login-panel-warm">
                   <div className="stack-sm">
                     <div>
-                      <strong>お試しで使う</strong>
+                      <strong>まずはお試しで使う</strong>
                       <div className="subtitle" style={{ marginTop: 6 }}>
-                        今はこの端末だけで使えます。あとからログインもできます。
+                        今はこの端末だけで使えます。あとからログインを追加することもできます。
                       </div>
                     </div>
                     <LoginButton mode="demo" onError={setError} />
