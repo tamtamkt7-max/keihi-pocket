@@ -60,7 +60,7 @@ export default function DashboardPage() {
         <div className="page section">
           <PageHeader
             title="経費ポケット"
-            description="売上、経費、残りをまとめて確認できます。"
+            description="レシートや売上をまとめて見返せます。"
             actions={
               <Link href="/records/new" className="button primary header-camera-button">
                 <Camera size={18} />
@@ -69,13 +69,32 @@ export default function DashboardPage() {
             }
           />
 
+          <Card className="list-card home-intro-card">
+            <div className="home-intro-copy">
+              <span className="badge primary">はじめてでもかんたん</span>
+              <h2>撮って、確認して、保存するだけ。</h2>
+              <p className="subtitle">
+                レシートを撮ると内容が入り、足りないところだけ直して保存できます。保存したあとは一覧と集計でまとめて見返せます。
+              </p>
+            </div>
+            <div className="home-intro-actions">
+              <Link href="/records/new" className="button primary">
+                <Camera size={18} />
+                レシートを撮る
+              </Link>
+              <Link href="/reports" className="button secondary">
+                集計を見る
+              </Link>
+            </div>
+          </Card>
+
           {isDemoMode ? (
             <Card className="list-card">
               <div className="heading" style={{ alignItems: "center" }}>
                 <div>
-                  <h3>ログインすると、スマホやPCでも見られます。</h3>
+                  <h3>お試しのままでも始められます。</h3>
                   <p className="subtitle" style={{ marginBottom: 0 }}>
-                    今の記録はこの端末だけに保存されています。
+                    まずはこの端末だけで使って、必要になったらログインできます。
                   </p>
                 </div>
                 <Link href="/login?next=/dashboard">
