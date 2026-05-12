@@ -1,0 +1,1 @@
+# ads.txt will be configured after AdSense publisher ID is issued.
