@@ -1,1 +1,1 @@
-# ads.txt will be configured after AdSense publisher ID is issued.
+google.com, pub-5461809032953003, DIRECT, f08c47fec0942fa0
