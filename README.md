@@ -49,11 +49,9 @@ npm run clean
 npm run dev:stable -- -p 3001
 ```
 
-スマホ実機では、表示された `Network URL` を開きます。
-
 ## Firebase の設定
 
-ログインしたユーザーの記録を保存する場合は、`.env.local` に次の値を入れます。
+`.env.local` に次の値を入れます。
 
 ```env
 NEXT_PUBLIC_FIREBASE_API_KEY=
@@ -65,25 +63,30 @@ NEXT_PUBLIC_FIREBASE_APP_ID=
 NEXT_PUBLIC_ENABLE_CLOUD_IMAGES=false
 ```
 
-今の方針では、記録本体の保存を優先します。  
-`NEXT_PUBLIC_ENABLE_CLOUD_IMAGES=false` のままなら、画像保存は必須になりません。
+### authDomain の方針
 
-### お試しで使うとき
+- Vercel 本番では `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=keihi-pocket.vercel.app` を使います
+- ローカル開発では `keihi-pocket.firebaseapp.com` のままでも構いません
 
-- ログインしない場合は、この端末だけに保存されます
-- 画像は保存されないことがあります
-- あとからログインして使い始めることもできます
+Safari などで Google ログインのリダイレクトを安定させるため、アプリ側では ` /__/auth/* ` を Firebase の handler へ rewrite しています。
 
-### ログインして使うとき
+### Firebase / Google Cloud で手動設定する内容
 
-- 記録はログインしたアカウントに保存されます
-- スマホやPCで同じ記録を見られます
-- 画像保存は今の段階では任意です
+Firebase Authentication の承認済みドメイン:
+
+- `keihi-pocket.vercel.app`
+
+Google Cloud OAuth クライアント:
+
+- 承認済み JavaScript 生成元
+  - `https://keihi-pocket.vercel.app`
+- 承認済みリダイレクト URI
+  - `https://keihi-pocket.vercel.app/__/auth/handler`
+  - `https://keihi-pocket.firebaseapp.com/__/auth/handler`
 
 ## Firestore ルール
 
-記録は `users/{uid}/records/{recordId}` に保存する前提です。  
-ルールを反映するときは、次を実行します。
+記録は `users/{uid}/records/{recordId}` に保存する前提です。
 
 ```bash
 firebase deploy --only firestore:rules
@@ -98,10 +101,7 @@ firebase deploy --only firestore:rules
 
 ## Storage について
 
-画像保存は将来使える形を残していますが、今は必須ではありません。  
-Spark プランでは無理に使わず、必要になった段階で有料プランと運用を見直す前提です。
-
-ルールを反映するときは、必要な場合だけ次を実行します。
+画像保存は将来使える形を残していますが、今は必須ではありません。
 
 ```bash
 firebase deploy --only storage
@@ -113,74 +113,12 @@ firebase deploy --only storage
 
 ```env
 GOOGLE_CLOUD_VISION_API_KEY=
-```
-
-サービスアカウントで接続する場合は、次の値も使えます。
-
-```env
 GOOGLE_CLOUD_PROJECT_ID=
 GOOGLE_CLOUD_CLIENT_EMAIL=
 GOOGLE_CLOUD_PRIVATE_KEY=
 ```
 
 `GOOGLE_CLOUD_PRIVATE_KEY` は、改行を `\n` のまま入れてください。
-
-設定がない場合でもアプリは起動し、簡易読み取りで動きます。  
-開発中だけ読み取り結果を画面で確認したい場合は、次を使います。
-
-```env
-NEXT_PUBLIC_SHOW_RECEIPT_DEBUG=true
-```
-
-## 広告の設定
-
-AdSense を使うときは、`.env.local` に次の値を入れます。
-
-```env
-NEXT_PUBLIC_ADSENSE_ENABLED=false
-NEXT_PUBLIC_ADSENSE_CLIENT=ca-pub-xxxxxxxxxxxxxxxx
-NEXT_PUBLIC_ADSENSE_SLOT_HOME_BOTTOM=
-NEXT_PUBLIC_ADSENSE_SLOT_REPORTS_BOTTOM=
-NEXT_PUBLIC_ADSENSE_SLOT_SETTINGS=
-```
-
-今の実装では、次の条件を満たすときだけ広告スクリプトを読み込みます。
-
-- 本番環境
-- `NEXT_PUBLIC_ADSENSE_ENABLED=true`
-- `NEXT_PUBLIC_ADSENSE_CLIENT` が入っている
-
-広告を出す場所:
-
-- ホーム下部
-- 集計画面下部
-- 設定画面
-
-広告を出さない場所:
-
-- 撮影画面
-- 登録画面
-- 保存前後の確認画面
-- ログイン画面
-- 詳細編集画面
-- 読み取り中の画面
-
-開発環境では広告を出さない方針です。  
-広告を減らすプランは将来用の置き場だけ用意しており、まだ課金処理は入っていません。
-
-## ads.txt
-
-`public/ads.txt` を用意しています。  
-AdSense の管理画面で表示された行を、そのまま `public/ads.txt` に貼り付けてください。
-
-開発中の確認:
-
-```text
-http://127.0.0.1:3001/ads.txt
-http://localhost:3001/ads.txt
-```
-
-公開後は、ルートの `/ads.txt` で見える必要があります。
 
 ## ログイン確認
 
@@ -195,12 +133,33 @@ http://localhost:3001/ads.txt
 - パスワード再設定
 - お試しで使う
 
-ローカル IP ではブラウザや認証設定の影響で Google ログインが不安定になることがあります。  
-その場合は、まず PC の `localhost` で確認してから、スマホではメールアドレスでのログインも試してください。
+Google ログインがうまく戻らないときは、次を確認します。
+
+- `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` が本番ドメインになっているか
+- `https://keihi-pocket.vercel.app/__/auth/handler` が使えるか
+- Firebase Authentication の承認済みドメインに `keihi-pocket.vercel.app` が入っているか
+- Google Cloud OAuth の生成元とリダイレクト URI が追加されているか
+
+## 広告の設定
+
+AdSense を使うときは、`.env.local` に次の値を入れます。
+
+```env
+NEXT_PUBLIC_ADSENSE_ENABLED=false
+NEXT_PUBLIC_ADSENSE_CLIENT=ca-pub-xxxxxxxxxxxxxxxx
+NEXT_PUBLIC_ADSENSE_SLOT_HOME_BOTTOM=
+NEXT_PUBLIC_ADSENSE_SLOT_REPORTS_BOTTOM=
+NEXT_PUBLIC_ADSENSE_SLOT_SETTINGS=
+```
+
+開発環境では広告を出さない方針です。
+
+## ads.txt
+
+`public/ads.txt` を用意しています。  
+公開後はルートの `/ads.txt` で見える必要があります。
 
 ## 公開前ページ
-
-最低限の案内ページを用意しています。
 
 - `/terms`
 - `/privacy`
@@ -210,14 +169,10 @@ http://localhost:3001/ads.txt
 
 ## PWA の確認
 
-土台として次を入れています。
-
 - アプリ名: `経費ポケット`
 - `manifest.webmanifest`
 - テーマカラー
 - ホーム画面追加用のアイコン
-
-確認するときは、スマホでブラウザの共有メニューからホーム画面に追加して、名前や色味が自然かを見ます。
 
 ## Firebase Hosting を使う場合
 
@@ -227,17 +182,7 @@ http://localhost:3001/ads.txt
 firebase init hosting
 ```
 
-公開前に確認したいこと:
-
-- `npm run build` が通る
-- Firestore ルールが反映されている
-- ログイン後の保存が一覧と集計に出る
-- 利用規約、プライバシーポリシー、お問い合わせが開ける
-- `ads.txt` がルートで見られる
-
 ## 確認コマンド
-
-公開前に次を実行します。
 
 ```bash
 npm run build

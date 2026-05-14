@@ -105,7 +105,7 @@ export async function signInWithGoogle() {
     return { mode: "popup" as const, credential };
   } catch (error) {
     console.error("login failed", error);
-    throw new Error(mapAuthError(error, "ログインできませんでした。もう一度お試しください。"));
+    throw new Error(mapAuthError(error, "Googleでログインできませんでした。メールアドレスでログインしてください。"));
   }
 }
 
@@ -163,7 +163,7 @@ export async function resetPassword(email: string) {
     console.log("login success", { provider: "password", action: "reset" });
   } catch (error) {
     console.error("login failed", error);
-    throw new Error(mapAuthError(error, "再設定メールを送れませんでした。もう一度お試しください。"));
+    throw new Error("メールアドレスを確認してください。");
   }
 }
 
@@ -189,7 +189,7 @@ export async function checkRedirectResultOnce() {
     return result;
   } catch (error) {
     console.error("login failed", error);
-    throw new Error(mapAuthError(error, "ログインできませんでした。もう一度お試しください。"));
+    throw new Error("Googleでログインできませんでした。メールアドレスでログインしてください。");
   }
 }
 

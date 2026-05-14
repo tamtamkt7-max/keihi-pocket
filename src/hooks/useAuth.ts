@@ -78,7 +78,7 @@ export function useAuth() {
       } catch (error) {
         console.error("redirect result check failed", error);
         if (mounted) {
-          setAuthError("ログインできませんでした。もう一度お試しください。");
+          setAuthError("Googleでログインできませんでした。メールアドレスでログインしてください。");
         }
       }
 
@@ -102,7 +102,7 @@ export function useAuth() {
           } catch (profileError) {
             console.error("login failed", profileError);
             if (!mounted) return;
-            setAuthError("ログイン後の準備が完了しませんでした。通信状況を確認して、もう一度お試しください。");
+            setAuthError("ログイン後の準備で時間がかかっています。少ししてからもう一度お試しください。");
           }
         } else {
           setDemoState(setUser, setProfile, setMode);
@@ -116,7 +116,7 @@ export function useAuth() {
     start().catch((error) => {
       console.error("auth bootstrap failed", error);
       if (mounted) {
-        setAuthError("ログインできませんでした。もう一度お試しください。");
+        setAuthError("Googleでログインできませんでした。メールアドレスでログインしてください。");
         setDemoState(setUser, setProfile, setMode);
       }
       window.clearTimeout(timeoutId);
