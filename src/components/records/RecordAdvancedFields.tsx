@@ -1,6 +1,7 @@
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
+import { RecordStatusSelect } from "./RecordStatusSelect";
 
 export function RecordAdvancedFields({
   values,
@@ -59,6 +60,11 @@ export function RecordAdvancedFields({
               value={values.taxRate ?? ""}
               onChange={(event) => onChange("taxRate", event.target.value ? Number(event.target.value) : null)}
             />
+          </div>
+          <div className="field">
+            <label>状態</label>
+            <RecordStatusSelect value={values.status} onChange={(next) => onChange("status", next)} />
+            <small>通常はそのままで大丈夫です。あとで確認したいものだけ保留にします。</small>
           </div>
         </div>
         <div className="field">

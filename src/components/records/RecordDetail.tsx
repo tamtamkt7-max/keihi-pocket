@@ -2,19 +2,8 @@ import { Category } from "@/types/category";
 import { RecordItem } from "@/types/record";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
 import { formatDate } from "@/lib/utils/formatDate";
-
-function shouldShowStatus(status: string) {
-  return status === "hold";
-}
-
-function statusLabel(status: string) {
-  switch (status) {
-    case "hold":
-      return "保留";
-    default:
-      return "";
-  }
-}
+import { Badge } from "@/components/ui/Badge";
+import { getRecordReview } from "@/lib/records/recordReview";
 
 export function RecordDetail({
   item,
@@ -24,6 +13,7 @@ export function RecordDetail({
   categories: Category[];
 }) {
   const category = categories.find((cat) => cat.id === item.categoryId);
+  const review = getRecordReview(item);
 
   return (
     <div className="section">
@@ -58,10 +48,15 @@ export function RecordDetail({
             <label>種類</label>
             <div>{item.recordType === "expense" ? "経費" : "売上"}</div>
           </div>
-          {shouldShowStatus(item.status) ? (
+          {review.state !== "normal" ? (
             <div className="field">
               <label>状態</label>
-              <div>{statusLabel(item.status)}</div>
+              <div className="wrap">
+                <Badge tone={review.tone}>{review.label}</Badge>
+                {review.reasons.map((reason) => (
+                  <span key={reason} className="subtitle">{reason}</span>
+                ))}
+              </div>
             </div>
           ) : null}
           <div className="field">

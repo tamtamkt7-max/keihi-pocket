@@ -32,6 +32,7 @@ export default function PrivacyPage() {
           <ul className="legal-list">
             <li>記録の保存と、一覧・集計・詳細画面での表示</li>
             <li>レシート内容の読み取りと入力補助</li>
+            <li>CSVやPDFなど、確認用データの作成</li>
             <li>お問い合わせへの対応</li>
             <li>使いやすさの改善や不具合の確認</li>
           </ul>
@@ -77,7 +78,8 @@ export default function PrivacyPage() {
         <Card className="list-card legal-section">
           <h3>7. ご確認いただきたいこと</h3>
           <p>
-            読み取り結果や集計結果は、入力の手間を減らすための補助です。最終的な内容はご自身で確認のうえ、ご利用ください。
+            読み取り結果、分類、集計結果、出力データは、入力前の確認や整理を助けるためのものです。
+            申告書の作成や税務判断を代行するものではありません。最終的な内容はご自身で確認のうえ、ご利用ください。
           </p>
         </Card>
 

@@ -1,6 +1,7 @@
 import { Category } from "@/types/category";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
+import { getDefaultCategoryDescription } from "@/lib/categories/defaultCategories";
 
 interface Props {
   values: any;
@@ -42,7 +43,12 @@ export function RecordBasicFields({ values, categories, onChange }: Props) {
             </option>
           ))}
         </Select>
-        <small>迷ったときは、あとで見直せます。</small>
+        <small>
+          {values.categoryId
+            ? categories.find((item) => item.id === values.categoryId)?.description ||
+              getDefaultCategoryDescription(categories.find((item) => item.id === values.categoryId)?.name || "")
+            : "迷ったときは、あとで選べます。未分類として集計に出ます。"}
+        </small>
       </div>
     </div>
   );

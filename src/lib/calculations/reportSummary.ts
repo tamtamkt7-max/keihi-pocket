@@ -1,4 +1,5 @@
 import { RecordItem } from "@/types/record";
+import { getRecordReview } from "@/lib/records/recordReview";
 
 export function getReportSummary(records: RecordItem[]) {
   const expenseTotal = records
@@ -15,12 +16,14 @@ export function getReportSummary(records: RecordItem[]) {
   }, {});
 
   const uncategorizedCount = records.filter((item) => !item.categoryId).length;
+  const needsReviewCount = records.filter((item) => getRecordReview(item).state === "needs_review").length;
 
   return {
     expenseTotal,
     incomeTotal,
     balance: incomeTotal - expenseTotal,
     uncategorizedCount,
+    needsReviewCount,
     unconfirmedCount: statusCounts.unconfirmed || 0,
     holdCount: statusCounts.hold || 0,
     count: records.length,

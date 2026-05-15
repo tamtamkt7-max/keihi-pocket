@@ -35,6 +35,9 @@ export default function TermsPage() {
             写真から入った内容、手入力した内容、集計結果は、ご自身で確認してからご利用ください。日付、金額、相手先、
             分類などに誤りがある場合は、編集画面で直してください。
           </p>
+          <p>
+            CSVやPDFは、申告前の確認や転記用のメモとして作成されます。そのまま提出できる税務書類ではありません。
+          </p>
         </Card>
 
         <Card className="list-card legal-section">

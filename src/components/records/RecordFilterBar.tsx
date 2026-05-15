@@ -47,6 +47,7 @@ export function RecordFilterBar({
         <label>状態</label>
         <Select value={filters.status} onChange={(e) => onChange("status", e.target.value)}>
           <option value="">すべて</option>
+          <option value="needs_review">要確認</option>
           <option value="confirmed">確認済み</option>
           <option value="filed">整理済み</option>
           <option value="hold">保留</option>

@@ -1,18 +1,10 @@
 import { Card } from "@/components/ui/Card";
 import { RecordItem } from "@/types/record";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
+import { getMonthlyRows } from "@/lib/reports/reportTables";
 
 export function MonthlyBreakdown({ records }: { records: RecordItem[] }) {
-  const map = new Map<string, { expense: number; income: number }>();
-
-  for (const record of records) {
-    const current = map.get(record.transactionYearMonthKey) || { expense: 0, income: 0 };
-    if (record.recordType === "expense") current.expense += record.calculatedBusinessAmount;
-    if (record.recordType === "income") current.income += record.amount;
-    map.set(record.transactionYearMonthKey, current);
-  }
-
-  const rows = [...map.entries()].sort((a, b) => b[0].localeCompare(a[0]));
+  const rows = getMonthlyRows(records);
 
   return (
     <Card className="list-card">
@@ -28,12 +20,12 @@ export function MonthlyBreakdown({ records }: { records: RecordItem[] }) {
             </tr>
           </thead>
           <tbody>
-            {rows.map(([month, values]) => (
-              <tr key={month}>
-                <td>{month}</td>
-                <td>{formatCurrency(values.income)}</td>
-                <td>{formatCurrency(values.expense)}</td>
-                <td>{formatCurrency(values.income - values.expense)}</td>
+            {rows.map((values) => (
+              <tr key={values.month}>
+                <td>{values.month}</td>
+                <td className="numeric-cell">{formatCurrency(values.income)}</td>
+                <td className="numeric-cell">{formatCurrency(values.expense)}</td>
+                <td className="numeric-cell">{formatCurrency(values.balance)}</td>
               </tr>
             ))}
           </tbody>

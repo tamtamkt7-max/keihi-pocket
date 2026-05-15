@@ -7,13 +7,15 @@ import { Button } from "@/components/ui/Button";
 import { ReportSummary } from "@/components/reports/ReportSummary";
 import { CategoryBreakdown } from "@/components/reports/CategoryBreakdown";
 import { MonthlyBreakdown } from "@/components/reports/MonthlyBreakdown";
+import { ReviewList } from "@/components/reports/ReviewList";
 import { useAuth } from "@/hooks/useAuth";
 import { useCategories } from "@/hooks/useCategories";
 import { useRecords } from "@/hooks/useRecords";
 import { getReportSummary } from "@/lib/calculations/reportSummary";
-import { exportRecordsCsv } from "@/lib/exports/exportCsv";
+import { exportRecordsCsv, exportSummaryCsv } from "@/lib/exports/exportCsv";
 import { exportRecordsPdf } from "@/lib/exports/exportPdf";
 import { AdSlot } from "@/components/ads/AdSlot";
+import { getReportPeriod } from "@/lib/reports/reportTables";
 
 export default function ReportsPage() {
   const { user } = useAuth();
@@ -27,18 +29,26 @@ export default function ReportsPage() {
         <div className="page section">
           <PageHeader
             title="集計"
-            description="保存した記録をもとに、月ごとの数字を整理します。"
+            description="申告前に、e-Taxへ入力する数字を確認しやすく整理します。"
             actions={
               <div className="wrap">
-                <Button variant="secondary" onClick={() => exportRecordsCsv(filtered)}>
-                  CSVで保存
+                <Button variant="secondary" onClick={() => exportRecordsCsv(filtered, categories)}>
+                  CSV出力
                 </Button>
-                <Button variant="secondary" onClick={() => exportRecordsPdf(filtered)}>
-                  PDFで保存
+                <Button variant="secondary" onClick={() => exportSummaryCsv(filtered, categories)}>
+                  集計CSV
+                </Button>
+                <Button variant="secondary" onClick={() => exportRecordsPdf(filtered, categories)}>
+                  PDF出力
                 </Button>
               </div>
             }
           />
+
+          <div className="support-panel">
+            <strong>対象期間</strong>
+            <span>{getReportPeriod(filtered)}</span>
+          </div>
 
           <ReportSummary
             expenseTotal={summary.expenseTotal}
@@ -46,6 +56,8 @@ export default function ReportsPage() {
             balance={summary.balance}
             unconfirmedCount={summary.unconfirmedCount}
             uncategorizedCount={summary.uncategorizedCount}
+            needsReviewCount={summary.needsReviewCount}
+            holdCount={summary.holdCount}
           />
 
           {error ? (
@@ -55,12 +67,13 @@ export default function ReportsPage() {
           ) : null}
 
           <div className="support-panel">
-            <strong>見直し</strong>
-            <span>分類がない記録は、先に整えると集計が見やすくなります。</span>
+            <strong>申告前の確認</strong>
+            <span>この画面は入力前の整理用です。分類や金額は必要に応じて確認してください。</span>
           </div>
 
           <MonthlyBreakdown records={filtered} />
           <CategoryBreakdown records={filtered} categories={categories} />
+          <ReviewList records={filtered} categories={categories} />
 
           <AdSlot placement="reports-bottom" />
         </div>

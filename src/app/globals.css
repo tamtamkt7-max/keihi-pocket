@@ -178,6 +178,11 @@ body { min-height: 100vh; }
 }
 .table th { color: var(--muted); font-weight: 700; }
 
+.numeric-cell {
+  text-align: right !important;
+  font-variant-numeric: tabular-nums;
+}
+
 .metric-card {
   padding: 16px;
 }

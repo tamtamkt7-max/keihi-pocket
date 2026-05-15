@@ -137,6 +137,7 @@ export default function DashboardPage() {
             holdCount={summary.holdCount}
             unconfirmedCount={summary.unconfirmedCount}
             uncategorizedCount={summary.uncategorizedCount}
+            needsReviewCount={summary.needsReviewCount}
           />
 
           <RecentRecords items={recent} />

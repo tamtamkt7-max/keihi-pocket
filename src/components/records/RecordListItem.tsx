@@ -3,17 +3,11 @@ import { Badge } from "@/components/ui/Badge";
 import { RecordItem } from "@/types/record";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
 import { formatDate } from "@/lib/utils/formatDate";
-
-function getVisibleStatus(status: string) {
-  if (status === "hold") {
-    return { label: "保留", tone: "warning" as const };
-  }
-
-  return null;
-}
+import { getRecordReview } from "@/lib/records/recordReview";
 
 export function RecordListItem({ item }: { item: RecordItem }) {
-  const status = getVisibleStatus(item.status);
+  const status = getRecordReview(item);
+  const showStatus = status.state !== "normal";
 
   return (
     <Link href={`/records/${item.id}`} className="record-row">
@@ -23,7 +17,7 @@ export function RecordListItem({ item }: { item: RecordItem }) {
         <span className="subtitle">
           {formatDate(item.transactionDate)} ・ {item.recordType === "expense" ? "経費" : "売上"}
         </span>
-        {status ? (
+        {showStatus ? (
           <div className="wrap">
             <Badge tone={status.tone}>{status.label}</Badge>
           </div>

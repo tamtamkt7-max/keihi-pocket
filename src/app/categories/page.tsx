@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/Input";
 import { useAuth } from "@/hooks/useAuth";
 import { useCategories } from "@/hooks/useCategories";
 import { saveCategory } from "@/lib/firestore/categories";
+import { getDefaultCategoryDescription } from "@/lib/categories/defaultCategories";
 
 export default function CategoriesPage() {
   const { user } = useAuth();
@@ -20,7 +21,7 @@ export default function CategoriesPage() {
     <AuthGuard>
       <AppShell>
         <div className="page section">
-          <PageHeader title="分類" description="よく使う名前を先に入れておくと選びやすくなります。" />
+          <PageHeader title="分類" description="申告前に見返しやすいよう、よく使う分類を用意しています。" />
 
           <Card className="list-card">
             <div className="row">
@@ -57,6 +58,7 @@ export default function CategoriesPage() {
                   <tr>
                     <th>名前</th>
                     <th>種類</th>
+                    <th>目安</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -64,6 +66,7 @@ export default function CategoriesPage() {
                     <tr key={item.id}>
                       <td>{item.name}</td>
                       <td>{item.type === "expense" ? "経費" : item.type === "income" ? "売上" : "共通"}</td>
+                      <td>{item.description || getDefaultCategoryDescription(item.name) || "必要に応じて選んでください"}</td>
                     </tr>
                   ))}
                 </tbody>

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { getRecords } from "@/lib/firestore/records";
 import { RecordItem } from "@/types/record";
+import { getRecordReview } from "@/lib/records/recordReview";
 
 interface FilterState {
   query: string;
@@ -53,7 +54,8 @@ export function useRecords(userId?: string) {
       if (query && !`${item.vendorName} ${item.memo}`.toLowerCase().includes(query)) return false;
       if (filters.month && item.transactionYearMonthKey !== filters.month) return false;
       if (filters.recordType && item.recordType !== filters.recordType) return false;
-      if (filters.status && item.status !== filters.status) return false;
+      if (filters.status === "needs_review" && getRecordReview(item).state !== "needs_review") return false;
+      if (filters.status && filters.status !== "needs_review" && item.status !== filters.status) return false;
       if (filters.categoryId && item.categoryId !== filters.categoryId) return false;
       return true;
     });

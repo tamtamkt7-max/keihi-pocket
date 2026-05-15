@@ -6,4 +6,5 @@ export interface Category {
   sortOrder: number;
   isDefault: boolean;
   isActive: boolean;
+  description?: string;
 }

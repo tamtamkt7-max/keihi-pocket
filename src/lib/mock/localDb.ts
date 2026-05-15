@@ -2,6 +2,7 @@ import { Category } from "@/types/category";
 import { RecordItem } from "@/types/record";
 import { RecurringTemplate } from "@/types/recurring";
 import { UserProfile } from "@/types/user";
+import { defaultCategories } from "@/lib/categories/defaultCategories";
 
 const KEYS = {
   profile: "keihi-pocket-demo-profile",
@@ -22,21 +23,6 @@ const MAX_INVOICE_MEMO_LENGTH = 200;
 const MAX_VENDOR_NAME_LENGTH = 120;
 const MAX_CANDIDATE_COUNT = 12;
 const MAX_DEBUG_COUNT = 16;
-
-const defaultExpenseCategories = [
-  "仕入れ",
-  "交通費",
-  "通信費",
-  "消耗品",
-  "外注費",
-  "会議費",
-  "新聞図書費",
-  "広告宣伝費",
-  "地代家賃",
-  "水道光熱費",
-  "雑費",
-];
-const defaultIncomeCategories = ["売上", "雑収入"];
 
 function canUseStorage() {
   return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
@@ -267,29 +253,21 @@ export function saveDemoProfile(profile: UserProfile) {
 
 export function getDemoCategories(userId: string): Category[] {
   const existing = readJson<Category[]>(KEYS.categories, []);
-  if (existing.length > 0) return existing.filter((item) => item.userId === userId);
+  const userItems = existing.filter((item) => item.userId === userId);
+  const existingKeys = new Set(userItems.map((item) => `${item.type}:${item.name}`));
+  const missing = defaultCategories.filter((item) => !existingKeys.has(`${item.type}:${item.name}`));
+  if (userItems.length > 0 && missing.length === 0) return userItems;
+
   const seeded: Category[] = [
-    ...defaultExpenseCategories.map((name, index) => ({
+    ...existing,
+    ...missing.map((item) => ({
       id: makeId("cat"),
       userId,
-      name,
-      type: "expense" as const,
-      sortOrder: index,
-      isDefault: true,
-      isActive: true,
-    })),
-    ...defaultIncomeCategories.map((name, index) => ({
-      id: makeId("cat"),
-      userId,
-      name,
-      type: "income" as const,
-      sortOrder: 100 + index,
-      isDefault: true,
-      isActive: true,
+      ...item,
     })),
   ];
   writeJson(KEYS.categories, seeded);
-  return seeded;
+  return seeded.filter((item) => item.userId === userId);
 }
 
 export function saveDemoCategory(category: Category) {
