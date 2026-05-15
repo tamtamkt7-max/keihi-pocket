@@ -16,8 +16,8 @@ export async function ensureDefaultCategories(userId: string) {
   const activeDb = db!;
 
   const existing = await getCategories(userId);
-  const existingKeys = new Set(existing.map((item) => `${item.type}:${item.name}`));
-  const missing = defaultCategories.filter((item) => !existingKeys.has(`${item.type}:${item.name}`));
+  const existingNames = new Set(existing.map((item) => item.name.trim()));
+  const missing = defaultCategories.filter((item) => !existingNames.has(item.name));
   if (missing.length === 0) return existing;
 
   const items: Omit<Category, "id">[] = [

@@ -254,8 +254,8 @@ export function saveDemoProfile(profile: UserProfile) {
 export function getDemoCategories(userId: string): Category[] {
   const existing = readJson<Category[]>(KEYS.categories, []);
   const userItems = existing.filter((item) => item.userId === userId);
-  const existingKeys = new Set(userItems.map((item) => `${item.type}:${item.name}`));
-  const missing = defaultCategories.filter((item) => !existingKeys.has(`${item.type}:${item.name}`));
+  const existingNames = new Set(userItems.map((item) => item.name.trim()));
+  const missing = defaultCategories.filter((item) => !existingNames.has(item.name));
   if (userItems.length > 0 && missing.length === 0) return userItems;
 
   const seeded: Category[] = [

@@ -18,7 +18,7 @@ export function ReviewList({ records, categories }: { records: RecordItem[]; cat
         <div className="empty-state">要確認の記録はありません。</div>
       ) : (
         rows.slice(0, 12).map(({ record, review, categoryName }) => (
-          <Link href={`/records/${record.id}`} key={record.id} className="record-row">
+          <Link href={`/records/${record.id}/edit`} key={record.id} className="record-row">
             <div className="record-thumb" aria-hidden="true" />
             <div className="col" style={{ gap: 4 }}>
               <strong>{record.vendorName || "名前なし"}</strong>
