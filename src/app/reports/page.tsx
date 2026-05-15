@@ -27,7 +27,7 @@ export default function ReportsPage() {
         <div className="page section">
           <PageHeader
             title="集計"
-            description="月ごと、年ごとの数字をまとめて見られます。"
+            description="保存した記録をもとに、月ごとの数字を整理します。"
             actions={
               <div className="wrap">
                 <Button variant="secondary" onClick={() => exportRecordsCsv(filtered)}>
@@ -55,8 +55,8 @@ export default function ReportsPage() {
           ) : null}
 
           <div className="support-panel">
-            <strong>見直したいところ</strong>
-            <span>分類がまだの記録があるときは、先に整えておくと集計が見やすくなります。</span>
+            <strong>見直し</strong>
+            <span>分類がない記録は、先に整えると集計が見やすくなります。</span>
           </div>
 
           <MonthlyBreakdown records={filtered} />

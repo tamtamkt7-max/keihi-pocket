@@ -42,7 +42,7 @@ export function AccountMenu() {
           )}
           <div>
             <strong>{isCloudMode ? "ログイン中" : "アカウント"}</strong>
-            <div className="subtitle">{user.email || user.displayName || "ログインしています"}</div>
+            <div className="subtitle">{user.email || user.displayName || "アカウント情報"}</div>
           </div>
         </div>
         <Link href="/settings" className="account-popover-link">

@@ -60,11 +60,11 @@ export default function DashboardPage() {
         <div className="page section">
           <PageHeader
             title="経費ポケット"
-            description="レシートや売上をまとめて見返せます。"
+            description="レシートを撮って、経費と売上をまとめて管理。"
             actions={
               <Link href="/records/new" className="button primary header-camera-button">
                 <Camera size={18} />
-                撮る
+                登録する
               </Link>
             }
           />
@@ -72,15 +72,15 @@ export default function DashboardPage() {
           <Card className="list-card home-intro-card">
             <div className="home-intro-copy">
               <span className="badge primary">はじめてでもかんたん</span>
-              <h2>撮って、確認して、保存するだけ。</h2>
+              <h2>写真で登録して、あとから見返せます。</h2>
               <p className="subtitle">
-                レシートを撮ると内容が入り、足りないところだけ直して保存できます。保存したあとは一覧と集計でまとめて見返せます。
+                レシートを撮るか写真を選ぶだけ。足りないところを確認して保存すると、一覧や集計にすぐ反映されます。
               </p>
             </div>
             <div className="home-intro-actions">
               <Link href="/records/new" className="button primary">
                 <Camera size={18} />
-                レシートを撮る
+                登録する
               </Link>
               <Link href="/reports" className="button secondary">
                 集計を見る
@@ -92,10 +92,8 @@ export default function DashboardPage() {
             <Card className="list-card">
               <div className="heading" style={{ alignItems: "center" }}>
                 <div>
-                  <h3>お試しのままでも始められます。</h3>
-                  <p className="subtitle" style={{ marginBottom: 0 }}>
-                    まずはこの端末だけで使って、必要になったらログインできます。
-                  </p>
+                  <h3>まずはこのまま試せます。</h3>
+                  <p className="subtitle" style={{ marginBottom: 0 }}>お試し中の記録は、この端末だけに保存されます。</p>
                 </div>
                 <Link href="/login?next=/dashboard">
                   <Button variant="secondary">ログインして保存</Button>

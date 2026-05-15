@@ -52,6 +52,7 @@ export function RecordForm({
     initial ? (initial.recordType === "income" ? "income" : "manual") : initialEntryMode
   );
   const [started, setStarted] = useState(Boolean(initial) || initialEntryMode !== "camera");
+  const [selectingPhotoMode, setSelectingPhotoMode] = useState(false);
   const [values, setValues] = useState({
     recordType: initial?.recordType || (initialEntryMode === "income" ? "income" : defaultType),
     documentType: initial?.documentType || "receipt",
@@ -102,6 +103,7 @@ export function RecordForm({
 
   function beginMode(mode: EntryMode) {
     setStarted(true);
+    setSelectingPhotoMode(false);
     setEntryMode(mode);
 
     if (mode === "income") {
@@ -224,31 +226,82 @@ export function RecordForm({
     { label: values.recordType === "income" ? "入金元" : "お店・相手先", ready: Boolean(values.vendorName) },
   ];
   const readyCount = requiredChecks.filter((item) => item.ready).length;
+  const hasPhotoPreview = previews.length > 0;
+  const isPhotoEntry = entryMode === "camera" || entryMode === "upload";
+
+  const entryHeading = useMemo(() => {
+    if (entryMode === "income") {
+      return {
+        title: "売上を入力",
+        subtitle: "入金日や金額を確認して保存します。",
+      };
+    }
+
+    if (isPhotoEntry && !hasPhotoPreview && !scanLoading) {
+      return {
+        title: "写真を追加",
+        subtitle: "レシートを撮るか、写真を選んでください。",
+      };
+    }
+
+    return {
+      title: "内容を確認",
+      subtitle: scanLoading ? "写真を確認しています..." : "足りないところだけ直して保存します。",
+    };
+  }, [entryMode, hasPhotoPreview, isPhotoEntry, scanLoading]);
 
   return (
     <div className="section">
       {!started ? (
         <section className="capture-start">
-          <label className="capture-button capture-button-main">
-            <Camera size={30} />
-            <span>撮る</span>
-            <small>レシートや書類を撮って登録できます</small>
-            <input hidden type="file" accept="image/*" capture="environment" onChange={handleFirstCamera} />
-          </label>
-          <div className="sub-actions">
-            <button type="button" onClick={() => beginMode("upload")}>
-              <ImagePlus size={18} />
-              写真から
-            </button>
-            <button type="button" onClick={() => beginMode("manual")}>
-              <Keyboard size={18} />
-              手入力
-            </button>
-            <button type="button" onClick={() => beginMode("income")}>
-              <WalletCards size={18} />
-              売上
-            </button>
+          <div className="capture-copy">
+            <h2>登録方法を選ぶ</h2>
+            <p>まずは写真で登録するか、手入力するかを選べます。</p>
           </div>
+
+          {!selectingPhotoMode ? (
+            <>
+              <button type="button" className="action-card-button action-card-primary capture-choice-main" onClick={() => setSelectingPhotoMode(true)}>
+                <span className="action-card-icon">
+                  <Camera size={22} />
+                </span>
+                <div>
+                  <strong>写真で登録</strong>
+                  <p>レシートを撮るか、写真を選んで始めます。</p>
+                </div>
+              </button>
+
+              <div className="sub-actions">
+                <button type="button" onClick={() => beginMode("manual")}>
+                  <Keyboard size={18} />
+                  手入力
+                </button>
+                <button type="button" onClick={() => beginMode("income")}>
+                  <WalletCards size={18} />
+                  売上を登録
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <label className="capture-button capture-button-main">
+                <Camera size={30} />
+                <span>レシートを撮る</span>
+                <small>そのまま内容の確認に進めます</small>
+                <input hidden type="file" accept="image/*" capture="environment" onChange={handleFirstCamera} />
+              </label>
+              <div className="sub-actions">
+                <button type="button" onClick={() => beginMode("upload")}>
+                  <ImagePlus size={18} />
+                  写真を選ぶ
+                </button>
+                <button type="button" onClick={() => setSelectingPhotoMode(false)}>
+                  <Keyboard size={18} />
+                  戻る
+                </button>
+              </div>
+            </>
+          )}
         </section>
       ) : null}
 
@@ -257,13 +310,17 @@ export function RecordForm({
           <Card className="list-card entry-mode-card">
             <div className="heading" style={{ marginBottom: 0 }}>
               <div>
-                <h3>{entryMode === "income" ? "売上を登録" : "内容を確認"}</h3>
-                <p className="subtitle">
-                  {scanLoading ? "写真を確認中..." : "足りないところだけ直して、そのまま保存できます。"}
-                </p>
+                <h3>{entryHeading.title}</h3>
+                <p className="subtitle">{entryHeading.subtitle}</p>
               </div>
               {!initial ? (
-                <Button variant="ghost" onClick={() => setStarted(false)}>
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setStarted(false);
+                    setSelectingPhotoMode(false);
+                  }}
+                >
                   戻る
                 </Button>
               ) : null}
@@ -306,7 +363,7 @@ export function RecordForm({
               <div>
                 <strong>足りないところだけ入力してください</strong>
                 <p className="subtitle" style={{ margin: "6px 0 0" }}>
-                  あとから見直したいときは、保存後にも直せます。
+                  保存後も編集できます。
                 </p>
               </div>
             </Card>
@@ -323,7 +380,7 @@ export function RecordForm({
             <div className="readiness-list">
               {requiredChecks.map((item) => (
                 <span key={item.label} className={`readiness-pill ${item.ready ? "ready" : ""}`}>
-                  {item.ready ? "入力済み" : "未入力"}・{item.label}
+                  {item.ready ? "入力済み" : "あと少し"}・{item.label}
                 </span>
               ))}
             </div>
@@ -335,10 +392,10 @@ export function RecordForm({
           <div className="sticky-actions">
             <div className="row save-row">
               <Button disabled={loading || scanLoading} onClick={handleSave}>
-                {scanLoading ? "確認中..." : loading ? "保存中..." : "この内容で保存"}
+                {scanLoading ? "写真を確認しています..." : loading ? "保存しています..." : "この内容で保存"}
               </Button>
               <Button variant="secondary" onClick={() => router.push("/dashboard")}>
-                やめる
+                ホームへ戻る
               </Button>
             </div>
           </div>
@@ -358,11 +415,11 @@ export function RecordForm({
 
           {SHOW_RECEIPT_DEBUG ? (
             <details className="card debug-panel">
-              <summary>開発用の確認</summary>
+              <summary>読み取り内容</summary>
               <div className="debug-grid">
                 <div>
                   <strong>方式</strong>
-                  <pre>{values.ocrExtracted?.provider || "未取得"}</pre>
+                  <pre>{values.ocrExtracted?.provider || "なし"}</pre>
                 </div>
                 <div>
                   <strong>読み取り文字</strong>

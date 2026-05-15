@@ -28,7 +28,7 @@ export function RecentRecords({ items }: { items: RecordItem[] }) {
           <p>まだ記録がありません。</p>
           <Link href="/records/new" className="button primary">
             <Camera size={18} />
-            まずは撮る
+            登録する
           </Link>
         </div>
       ) : (
@@ -38,7 +38,7 @@ export function RecentRecords({ items }: { items: RecordItem[] }) {
             <Link href={`/records/${item.id}`} key={item.id} className="record-row">
               <img className="record-thumb" src={item.thumbnailUrl || "/placeholder.svg"} alt="" />
               <div className="col" style={{ gap: 4 }}>
-                <strong>{item.vendorName || "お店・相手先を追加"}</strong>
+                <strong>{item.vendorName || "名前なし"}</strong>
                 <span className="subtitle">
                   {formatDate(item.transactionDate)} ・ {item.recordType === "expense" ? "経費" : "売上"}
                 </span>

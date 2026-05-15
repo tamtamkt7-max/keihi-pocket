@@ -9,9 +9,7 @@ export function RecurringTemplateList({ items }: { items: RecurringTemplate[] })
         <h3>登録中の定期支出</h3>
       </div>
       {items.length === 0 ? (
-        <div className="empty-state">
-          まだ登録がありません。毎月くり返す支払いがあれば追加しておくと便利です。
-        </div>
+        <div className="empty-state">まだ登録がありません。毎月の支払いを上から追加してください。</div>
       ) : (
         <table className="table">
           <thead>

@@ -38,7 +38,7 @@ export default function RecordDetailPage() {
         <div className="page section">
           <PageHeader
             title="記録の詳細"
-            description="内容を確認したり、あとから直したりできます。"
+            description="保存した内容を見返せます。"
             actions={
               <div className="wrap">
                 {item ? (
@@ -76,7 +76,7 @@ export default function RecordDetailPage() {
             </Card>
           ) : null}
 
-          {item ? <RecordDetail item={item} categories={categories} /> : <div className="card" style={{ padding: 24 }}>読み込み中...</div>}
+          {item ? <RecordDetail item={item} categories={categories} /> : <div className="card" style={{ padding: 24 }}>内容を開いています...</div>}
         </div>
       </AppShell>
     </AuthGuard>

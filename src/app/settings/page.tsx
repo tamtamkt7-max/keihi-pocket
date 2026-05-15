@@ -30,7 +30,7 @@ export default function SettingsPage() {
         <AppShell>
           <div className="page">
             <div className="card" style={{ padding: 24 }}>
-              読み込み中...
+              設定を開いています...
             </div>
           </div>
         </AppShell>
@@ -42,7 +42,7 @@ export default function SettingsPage() {
     <AuthGuard>
       <AppShell>
         <div className="page section">
-          <PageHeader title="設定" description="アカウントや事業の設定を確認できます。" />
+          <PageHeader title="設定" description="アカウントと保存方法を確認します。" />
 
           <Card className="list-card">
             <div className="heading">
@@ -50,13 +50,11 @@ export default function SettingsPage() {
                 <h3>アカウント</h3>
                 {isDemoMode ? (
                   <p className="subtitle" style={{ marginBottom: 0 }}>
-                    お試し中です。ログインすると、スマホやPCでも同じ記録を見られます。
+                    お試し中です。必要になったらログインして続けられます。
                   </p>
                 ) : (
                   <p className="subtitle" style={{ marginBottom: 0 }}>
                     {user?.email || "ログイン中"}
-                    <br />
-                    ログイン中
                   </p>
                 )}
               </div>
@@ -73,7 +71,7 @@ export default function SettingsPage() {
                 <div>
                   <strong>{user.displayName || "アカウント"}</strong>
                   <div className="subtitle">{user.email || ""}</div>
-                  <div className="subtitle">記録はログインした状態で保存されます。</div>
+                  <div className="subtitle">記録はこのアカウントで使えます。</div>
                 </div>
               </div>
             ) : null}
@@ -94,18 +92,18 @@ export default function SettingsPage() {
           <Card className="list-card">
             <div className="heading">
               <div>
-                <h3>保存について</h3>
+                <h3>データの保存</h3>
                 <p className="subtitle">
                   {isDemoMode
                     ? "今の記録はこの端末だけに保存されます。"
                     : "記録はログインしたアカウントに保存されます。"}
                 </p>
               </div>
-              <span className="badge primary">{isCloudMode ? "保存中" : "この端末のみ"}</span>
+              <span className="badge primary">{isCloudMode ? "ログイン中" : "この端末のみ"}</span>
             </div>
             <div className="support-panel">
               <strong>画像について</strong>
-              <span>今は内容の保存を優先しています。画像は保存されないことがあります。</span>
+              <span>今は登録内容の保存を優先しています。写真は保存されないことがあります。</span>
             </div>
           </Card>
 
@@ -185,14 +183,14 @@ export default function SettingsPage() {
             <div className="heading">
               <div>
                 <h3>案内</h3>
-                <p className="subtitle">アプリの使い方や大切なお知らせをここで確認できます。</p>
+                <p className="subtitle">困ったときや確認したいときはこちら。</p>
               </div>
             </div>
             <div className="settings-links">
               <Link href="/privacy">プライバシーポリシー</Link>
               <Link href="/terms">利用規約</Link>
               <Link href="/contact">お問い合わせ</Link>
-              <span>広告を減らすプラン</span>
+              <span>広告なしプラン</span>
               <span>バージョン 0.1.0</span>
             </div>
           </Card>

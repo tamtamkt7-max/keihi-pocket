@@ -19,7 +19,7 @@ export function RecordListItem({ item }: { item: RecordItem }) {
     <Link href={`/records/${item.id}`} className="record-row">
       <img className="record-thumb" src={item.thumbnailUrl || "/placeholder.svg"} alt="" />
       <div className="col" style={{ gap: 4 }}>
-        <strong>{item.vendorName || "お店・相手先を追加"}</strong>
+        <strong>{item.vendorName || "名前なし"}</strong>
         <span className="subtitle">
           {formatDate(item.transactionDate)} ・ {item.recordType === "expense" ? "経費" : "売上"}
         </span>

@@ -22,7 +22,7 @@ export function FirstRunGuide() {
       <div className="heading">
         <div>
           <h2>はじめ方</h2>
-          <p className="subtitle">最初はこの3つだけ覚えておけば大丈夫です。</p>
+          <p className="subtitle">まずはこの流れだけ分かれば大丈夫です。</p>
         </div>
         <Button
           variant="ghost"
@@ -37,20 +37,20 @@ export function FirstRunGuide() {
       <ol className="guide-steps" aria-label="はじめ方の手順">
         <li>
           <span>1</span>
-          <strong>レシートを撮る</strong>
+          <strong>写真で登録</strong>
         </li>
         <li>
           <span>2</span>
-          <strong>内容を確認する</strong>
+          <strong>内容を確認</strong>
         </li>
         <li>
           <span>3</span>
-          <strong>保存して集計を見る</strong>
+          <strong>保存して集計</strong>
         </li>
       </ol>
       <Link href="/records/new" className="button primary guide-action">
         <PlusCircle size={18} />
-        はじめる
+        登録する
       </Link>
     </Card>
   );

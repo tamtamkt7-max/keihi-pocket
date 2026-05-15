@@ -33,9 +33,6 @@ export default function LoginPage() {
   const canResetPassword = useMemo(() => email.trim().length > 0, [email]);
 
   useEffect(() => {
-    console.log("login page mounted");
-    console.log("firebase config available", { enabled: firebaseEnabled });
-
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
     const next = params.get("next") || "/dashboard";
@@ -48,14 +45,6 @@ export default function LoginPage() {
       router.replace(consumePostLoginPath());
     }
   }, [loading, user, isCloudMode, router]);
-
-  useEffect(() => {
-    console.log("login page render ready", {
-      loading,
-      hasUser: Boolean(user),
-      isCloudMode,
-    });
-  }, [loading, user, isCloudMode]);
 
   async function handleEmailSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -81,7 +70,7 @@ export default function LoginPage() {
       }
       router.replace(nextPath);
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "ログインできませんでした。");
+      setError(submitError instanceof Error ? submitError.message : "ログインできませんでした。もう一度お試しください。");
     } finally {
       setSubmitting(false);
     }
@@ -101,7 +90,7 @@ export default function LoginPage() {
       await resetPassword(email);
       setMessage("パスワード再設定メールを送りました。");
     } catch (resetError) {
-      setError(resetError instanceof Error ? resetError.message : "再設定メールを送れませんでした。");
+      setError(resetError instanceof Error ? resetError.message : "再設定メールを送れませんでした。メールアドレスを確認してください。");
     } finally {
       setSubmitting(false);
     }
@@ -114,31 +103,31 @@ export default function LoginPage() {
           <div className="section">
             <div className="login-brand">
               <span className="badge primary">経費ポケット</span>
-              <h1 style={{ margin: "0 0 8px" }}>レシート管理を、もっとかんたんに。</h1>
+              <h1 style={{ margin: "0 0 8px" }}>レシートを撮って、記録をまとめる。</h1>
               <p className="subtitle" style={{ margin: 0 }}>
-                レシートを撮って、内容を確認して保存。あとから一覧や集計でまとめて見返せます。
+                写真で登録して、あとから一覧や集計で見返せます。
               </p>
             </div>
 
             <Card className="list-card login-flow-card">
               <div className="heading" style={{ marginBottom: 0 }}>
                 <div>
-                  <h3>使い方はこの流れです。</h3>
-                  <p className="subtitle">はじめてでも、数分で使い始められます。</p>
+                  <h3>使い方は3ステップです。</h3>
+                  <p className="subtitle">最初に見るところだけ、さっとまとめました。</p>
                 </div>
               </div>
               <ol className="guide-steps" aria-label="使い方">
                 <li>
                   <span>1</span>
-                  <strong>レシートを撮る</strong>
+                  <strong>写真で登録</strong>
                 </li>
                 <li>
                   <span>2</span>
-                  <strong>内容を確認する</strong>
+                  <strong>内容を確認</strong>
                 </li>
                 <li>
                   <span>3</span>
-                  <strong>保存して集計を見る</strong>
+                  <strong>保存して集計</strong>
                 </li>
               </ol>
             </Card>
@@ -149,7 +138,7 @@ export default function LoginPage() {
                   <div className="card login-panel">
                     <div className="stack-sm">
                       <div>
-                        <strong>ログインすると、スマホやPCでも記録を見られます。</strong>
+                        <strong>ログインすると、スマホやPCでも同じ記録を見られます。</strong>
                         <div className="subtitle" style={{ marginTop: 6 }}>
                           まずは Google でそのまま始められます。
                         </div>
@@ -214,7 +203,7 @@ export default function LoginPage() {
                       </div>
 
                       <Button type="submit" disabled={submitting}>
-                        {submitting ? "処理中..." : emailMode === "login" ? "ログインする" : "登録する"}
+                        {submitting ? "送信しています..." : emailMode === "login" ? "ログインする" : "新規登録する"}
                       </Button>
 
                       <div className="row login-help-row">
@@ -235,7 +224,7 @@ export default function LoginPage() {
                       <div>
                         <strong>まずはお試しで使う</strong>
                         <div className="subtitle" style={{ marginTop: 6 }}>
-                          今の記録はこの端末だけに保存されます。あとからログインして続けられます。
+                          お試し中の記録はこの端末だけに保存されます。あとからログインして続けられます。
                         </div>
                       </div>
                       <LoginButton mode="demo" onError={setError} />
@@ -245,12 +234,12 @@ export default function LoginPage() {
               ) : (
                 <div className="card login-panel login-panel-warm">
                   <div className="stack-sm">
-                    <div>
-                      <strong>まずはお試しで使う</strong>
-                      <div className="subtitle" style={{ marginTop: 6 }}>
-                        今はこの端末だけで使えます。あとからログインを追加することもできます。
+                      <div>
+                        <strong>まずはお試しで使う</strong>
+                        <div className="subtitle" style={{ marginTop: 6 }}>
+                          今はこの端末だけで利用します。あとからログインに切り替えられます。
+                        </div>
                       </div>
-                    </div>
                     <LoginButton mode="demo" onError={setError} />
                   </div>
                 </div>

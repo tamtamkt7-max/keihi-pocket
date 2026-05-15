@@ -12,7 +12,7 @@ export function RecordList({ items }: { items: RecordItem[] }) {
           <p>まだ記録がありません。</p>
           <Link href="/records/new" className="button primary">
             <Camera size={18} />
-            まずは記録を追加
+            登録する
           </Link>
         </div>
       ) : (

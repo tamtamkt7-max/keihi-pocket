@@ -20,7 +20,7 @@ export function LoginButton({ mode, onError }: Props) {
         ? "ログイン中..."
         : "Googleで続ける"
       : loading
-        ? "準備中..."
+        ? "開いています..."
         : "お試しで使う";
 
   return (
@@ -46,7 +46,7 @@ export function LoginButton({ mode, onError }: Props) {
               ? error.message
               : mode === "cloud"
                 ? "ログインできませんでした。もう一度お試しください。"
-                : "お試しを始められませんでした。もう一度お試しください。"
+                : "お試しを開けませんでした。もう一度お試しください。"
           );
         } finally {
           setLoading(false);

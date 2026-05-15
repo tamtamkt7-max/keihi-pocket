@@ -18,7 +18,7 @@ export function AuthGuard({ children }: { children: ReactNode }) {
     return (
       <div className="page">
         <div className="card" style={{ padding: 24 }}>
-          読み込み中...
+          画面を開いています...
         </div>
       </div>
     );

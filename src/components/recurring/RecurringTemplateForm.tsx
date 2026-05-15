@@ -61,6 +61,9 @@ export function RecurringTemplateForm({
       <div className="heading">
         <h3>定期支出を追加</h3>
       </div>
+      <p className="subtitle" style={{ marginTop: -4 }}>
+        家賃や通信費など、毎月同じように入れる支払いに使えます。
+      </p>
       <div className="grid-2">
         <div className="field">
           <label>名前</label>

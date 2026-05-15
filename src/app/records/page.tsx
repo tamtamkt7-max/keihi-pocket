@@ -28,16 +28,16 @@ export default function RecordsPage() {
         <div className="page section">
           <PageHeader
             title="一覧"
-            description="日付や分類をしぼって、あとから見直せます。"
+            description="日付や分類でしぼって見返せます。"
             actions={
               <div className="wrap">
                 <Link href="/records/new?entry=manual">
-                  <Button variant="secondary">手入力</Button>
+                  <Button variant="secondary">手入力する</Button>
                 </Link>
                 <Link href="/records/new">
                   <Button>
                     <Camera size={18} />
-                    撮る
+                    登録する
                   </Button>
                 </Link>
               </div>
@@ -51,8 +51,8 @@ export default function RecordsPage() {
 
           <div className="card" style={{ padding: 16 }}>
             <div className="heading">
-              <h3>表示中の記録</h3>
-              <span className="subtitle">{loading ? "読み込み中..." : `${filtered.length}件`}</span>
+              <h3>記録</h3>
+              <span className="subtitle">{loading ? "開いています..." : `${filtered.length}件`}</span>
             </div>
           </div>
 

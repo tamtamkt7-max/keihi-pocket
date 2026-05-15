@@ -24,7 +24,7 @@ function NewRecordContent() {
     <AuthGuard>
       <AppShell>
         <div className="page section">
-          <PageHeader title="登録" />
+          <PageHeader title="登録" description="写真で登録するか、手入力で記録します。" />
 
           {user && profile ? (
             <RecordForm

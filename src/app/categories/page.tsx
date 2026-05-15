@@ -20,7 +20,7 @@ export default function CategoriesPage() {
     <AuthGuard>
       <AppShell>
         <div className="page section">
-          <PageHeader title="分類" description="よく使う分類を追加しておくと、登録が早くなります。" />
+          <PageHeader title="分類" description="よく使う名前を先に入れておくと選びやすくなります。" />
 
           <Card className="list-card">
             <div className="row">
@@ -49,7 +49,7 @@ export default function CategoriesPage() {
           <Card className="list-card">
             {items.length === 0 ? (
               <div className="empty-state">
-                まだ分類がありません。よく使う名前を追加しておくと、あとで選びやすくなります。
+                まだ分類がありません。よく使う名前を追加しておくと、登録するときに選びやすくなります。
               </div>
             ) : (
               <table className="table">

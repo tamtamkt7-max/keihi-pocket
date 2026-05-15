@@ -58,7 +58,7 @@ export function BottomNav() {
         <span className="nav-icon-wrap">
           <Camera size={22} strokeWidth={2.2} />
         </span>
-        <span>{capturing ? "準備中" : "撮る"}</span>
+        <span>{capturing ? "開いています" : "撮る"}</span>
       </button>
       <input ref={inputRef} hidden type="file" accept="image/*" capture="environment" onChange={handleCapture} />
 

@@ -16,6 +16,7 @@ export function ImageUploader({
 }) {
   const isCamera = mode === "camera";
   const Icon = isCamera ? Camera : ImagePlus;
+  const hasPreview = previews.length > 0;
 
   return (
     <div className="section">
@@ -34,7 +35,7 @@ export function ImageUploader({
 
       <label className="capture-button capture-button-compact">
         <Icon size={22} />
-        <span>{isCamera ? "もう一度撮る" : "写真を選ぶ"}</span>
+        <span>{isCamera ? (hasPreview ? "撮り直す" : "レシートを撮る") : hasPreview ? "選び直す" : "写真を選ぶ"}</span>
         <input
           hidden
           type="file"

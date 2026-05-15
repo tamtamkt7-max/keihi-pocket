@@ -21,7 +21,7 @@ export default function RecurringPage() {
         <div className="page section">
           <PageHeader
             title="定期支出"
-            description="毎月くり返す支払いをまとめて管理できます。"
+            description="家賃や通信費など、毎月の支払いをまとめておけます。"
             actions={
               user && profile ? (
                 <RecurringGenerateButton
