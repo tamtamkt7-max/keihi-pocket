@@ -14,7 +14,7 @@ import { RecordItem } from "@/types/record";
 export default function EditRecordPage() {
   const params = useParams<{ id: string }>();
   const { user, profile } = useAuth();
-  const { items: categories } = useCategories(user?.uid);
+  const { items: categories, loading: categoriesLoading } = useCategories(user?.uid);
   const [item, setItem] = useState<RecordItem | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -39,6 +39,7 @@ export default function EditRecordPage() {
               userId={user.uid}
               fiscalYearStartMonth={profile.fiscalYearStartMonth || 1}
               categories={categories}
+              categoriesLoading={categoriesLoading}
               initial={item}
               defaultType={item.recordType}
             />

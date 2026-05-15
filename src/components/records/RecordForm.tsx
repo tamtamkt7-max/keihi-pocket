@@ -25,6 +25,7 @@ type Props = {
   userId: string;
   fiscalYearStartMonth: number;
   categories: Category[];
+  categoriesLoading?: boolean;
   initial?: RecordItem | null;
   defaultType?: "expense" | "income";
   initialEntryMode?: EntryMode;
@@ -38,6 +39,7 @@ export function RecordForm({
   userId,
   fiscalYearStartMonth,
   categories,
+  categoriesLoading = false,
   initial,
   defaultType = "expense",
   initialEntryMode = "camera",
@@ -250,6 +252,14 @@ export function RecordForm({
     };
   }, [entryMode, hasPhotoPreview, isPhotoEntry, scanLoading]);
 
+  useEffect(() => {
+    console.info("record form categories loaded", {
+      categoriesCount: categories.length,
+      recordType: values.recordType,
+      categoriesLoading,
+    });
+  }, [categories, categoriesLoading, values.recordType]);
+
   return (
     <div className="section">
       {!started ? (
@@ -384,7 +394,12 @@ export function RecordForm({
                 </span>
               ))}
             </div>
-            <RecordBasicFields values={values} categories={categories} onChange={updateValue} />
+            <RecordBasicFields
+              values={values}
+              categories={categories}
+              categoriesLoading={categoriesLoading}
+              onChange={updateValue}
+            />
           </Card>
 
           <RecordAdvancedFields values={values} onChange={updateValue} />

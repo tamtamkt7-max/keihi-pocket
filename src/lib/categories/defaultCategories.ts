@@ -26,6 +26,8 @@ export const defaultCategories: DefaultCategory[] = [
   { name: "接待交際費", type: "expense", sortOrder: 280, isDefault: true, isActive: true, description: "取引先との飲食・贈答など" },
   { name: "会議費", type: "expense", sortOrder: 290, isDefault: true, isActive: true, description: "打ち合わせ時の飲み物・軽食など" },
   { name: "福利厚生費", type: "expense", sortOrder: 300, isDefault: true, isActive: true, description: "従業員向けの支出など" },
+  { name: "飲食費", type: "expense", sortOrder: 305, isDefault: true, isActive: true, description: "会議費や交際費に迷う飲食" },
+  { name: "食費", type: "expense", sortOrder: 306, isDefault: true, isActive: true, description: "生活費と分けて確認する飲食" },
   { name: "修繕費", type: "expense", sortOrder: 310, isDefault: true, isActive: true, description: "修理、部品交換など" },
   { name: "荷造運賃", type: "expense", sortOrder: 320, isDefault: true, isActive: true, description: "送料、梱包材など" },
   { name: "支払手数料", type: "expense", sortOrder: 330, isDefault: true, isActive: true, description: "振込手数料、決済手数料など" },

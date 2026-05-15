@@ -6,11 +6,32 @@ import { getDefaultCategoryDescription } from "@/lib/categories/defaultCategorie
 interface Props {
   values: any;
   categories: Category[];
+  categoriesLoading?: boolean;
   onChange: (key: string, value: any) => void;
 }
 
-export function RecordBasicFields({ values, categories, onChange }: Props) {
-  const filteredCategories = categories.filter((item) => item.type === values.recordType || item.type === "common");
+function isVisibleForRecordType(category: Category, recordType: string) {
+  const type = String(category.type || "");
+  return !type || type === recordType || type === "common" || type === "both" || type === "all";
+}
+
+export function RecordBasicFields({ values, categories, categoriesLoading = false, onChange }: Props) {
+  const activeCategories = categories
+    .filter((item) => item.isActive !== false)
+    .sort((a, b) => (a.sortOrder ?? 9999) - (b.sortOrder ?? 9999));
+  const filteredCategories = activeCategories.filter((item) => isVisibleForRecordType(item, values.recordType));
+  const visibleCategories = filteredCategories.length > 0 ? filteredCategories : activeCategories;
+  const selectedCategory = activeCategories.find((item) => item.id === values.categoryId);
+
+  console.info("category filter result", {
+    categoriesCount: categories.length,
+    visibleCategoriesCount: visibleCategories.length,
+    recordType: values.recordType,
+    categoryTypes: [...new Set(categories.map((item) => item.type || "none"))],
+  });
+  console.info("categories count", categories.length);
+  console.info("visible categories count", visibleCategories.length);
+  console.info("record type", values.recordType);
 
   return (
     <div className="simple-form">
@@ -35,18 +56,26 @@ export function RecordBasicFields({ values, categories, onChange }: Props) {
       </div>
       <div className="field">
         <label>分類</label>
-        <Select value={values.categoryId || ""} onChange={(event) => onChange("categoryId", event.target.value || null)}>
+        <Select
+          value={values.categoryId || ""}
+          disabled={categoriesLoading && visibleCategories.length === 0}
+          onChange={(event) => onChange("categoryId", event.target.value || null)}
+        >
           <option value="">あとで選ぶ</option>
-          {filteredCategories.map((item) => (
+          {selectedCategory && !visibleCategories.some((item) => item.id === selectedCategory.id) ? (
+            <option value={selectedCategory.id}>{selectedCategory.name}</option>
+          ) : null}
+          {visibleCategories.map((item) => (
             <option key={item.id} value={item.id}>
               {item.name}
             </option>
           ))}
         </Select>
         <small>
-          {values.categoryId
-            ? categories.find((item) => item.id === values.categoryId)?.description ||
-              getDefaultCategoryDescription(categories.find((item) => item.id === values.categoryId)?.name || "")
+          {categoriesLoading && visibleCategories.length === 0
+            ? "分類を開いています..."
+            : values.categoryId
+            ? selectedCategory?.description || getDefaultCategoryDescription(selectedCategory?.name || "")
             : "迷ったときは、あとで選べます。未分類として集計に出ます。"}
         </small>
       </div>

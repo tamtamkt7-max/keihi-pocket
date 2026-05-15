@@ -18,7 +18,7 @@ function NewRecordContent() {
     if (entry === "manual" || entry === "upload" || entry === "income") return entry;
     return "camera";
   }, [params]);
-  const { items: categories } = useCategories(user?.uid);
+  const { items: categories, loading: categoriesLoading } = useCategories(user?.uid);
 
   return (
     <AuthGuard>
@@ -31,6 +31,7 @@ function NewRecordContent() {
               userId={user.uid}
               fiscalYearStartMonth={profile.fiscalYearStartMonth || 1}
               categories={categories}
+              categoriesLoading={categoriesLoading}
               defaultType={defaultType}
               initialEntryMode={initialEntryMode}
             />
