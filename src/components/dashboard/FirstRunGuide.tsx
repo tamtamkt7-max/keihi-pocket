@@ -1,10 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
-import { PlusCircle } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { ReceiptCaptureButton } from "@/components/records/ReceiptCaptureButton";
 
 const STORAGE_KEY = "keihi-pocket-guide-seen";
 
@@ -48,10 +47,9 @@ export function FirstRunGuide() {
           <strong>保存して集計</strong>
         </li>
       </ol>
-      <Link href="/records/new" className="button primary guide-action">
-        <PlusCircle size={18} />
-        登録する
-      </Link>
+      <ReceiptCaptureButton className="button primary guide-action" compact>
+        まずは撮る
+      </ReceiptCaptureButton>
     </Card>
   );
 }

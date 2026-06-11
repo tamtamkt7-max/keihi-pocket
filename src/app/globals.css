@@ -628,7 +628,8 @@ body { min-height: 100vh; }
   gap: 10px;
 }
 
-.sub-actions button {
+.sub-actions button,
+.sub-action-file {
   min-height: 52px;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -640,6 +641,7 @@ body { min-height: 100vh; }
   gap: 8px;
   font-weight: 700;
   cursor: pointer;
+  font-size: 14px;
 }
 
 .simple-form {
@@ -772,8 +774,47 @@ body { min-height: 100vh; }
   background: #f0fdf7;
 }
 
-.reading-status-heading h3 {
-  font-size: 20px;
+.reading-status-card.warning {
+  border-color: #fed7aa;
+  background: #fff7ed;
+}
+
+.reading-status-card.plain {
+  border-color: var(--line);
+  background: var(--surface);
+}
+
+.reading-status-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.reading-status-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 34px;
+  background: rgba(17, 120, 101, 0.12);
+  color: var(--primary);
+}
+
+.reading-status-card.warning .reading-status-icon {
+  background: #fed7aa;
+  color: #9a3412;
+}
+
+.reading-status-card.active .reading-status-icon svg {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .debug-panel {

@@ -2,7 +2,7 @@
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Camera, CheckCircle2, ImagePlus, Keyboard, WalletCards } from "lucide-react";
+import { Camera, CheckCircle2, ImagePlus, Keyboard, LoaderCircle, WalletCards } from "lucide-react";
 import { Category } from "@/types/category";
 import { RecordItem } from "@/types/record";
 import { consumePendingReceiptCapture } from "@/lib/capture/pendingReceiptCapture";
@@ -48,8 +48,10 @@ export function RecordForm({
 }: Props) {
   const router = useRouter();
   const consumedPending = useRef(false);
+  const touchedFields = useRef(new Set<string>());
   const [loading, setLoading] = useState(false);
   const [scanLoading, setScanLoading] = useState(false);
+  const [scanState, setScanState] = useState<"idle" | "reading" | "filled" | "partial" | "failed">("idle");
   const [files, setFiles] = useState<File[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
   const [entryMode, setEntryMode] = useState<EntryMode>(
@@ -103,6 +105,7 @@ export function RecordForm({
   }, [initial]);
 
   function updateValue(key: string, value: any) {
+    touchedFields.current.add(key);
     setValues((prev) => ({ ...prev, [key]: value }));
   }
 
@@ -130,16 +133,27 @@ export function RecordForm({
 
   async function fillFromPhoto(file: File) {
     setScanLoading(true);
+    setScanState("reading");
     try {
       const result = await extractReceiptData(file);
       setValues((prev) => ({
         ...prev,
         ocrRawText: result.rawText,
         ocrExtracted: result.extracted,
-        transactionDate: result.extracted.date || "",
-        amount: result.extracted.amount ?? 0,
-        vendorName: result.extracted.vendorName || "",
+        transactionDate: touchedFields.current.has("transactionDate")
+          ? prev.transactionDate
+          : result.extracted.date || prev.transactionDate,
+        amount: touchedFields.current.has("amount")
+          ? prev.amount
+          : result.extracted.amount ?? prev.amount,
+        vendorName: touchedFields.current.has("vendorName")
+          ? prev.vendorName
+          : result.extracted.vendorName || prev.vendorName,
       }));
+      setScanState(result.extracted.date && result.extracted.amount && result.extracted.vendorName ? "filled" : "partial");
+    } catch (error) {
+      console.error("receipt read failed", error);
+      setScanState("failed");
     } finally {
       setScanLoading(false);
     }
@@ -158,6 +172,15 @@ export function RecordForm({
     event.target.value = "";
     if (!file) return;
     beginMode("camera");
+    setFiles([file]);
+    await fillFromPhoto(file);
+  }
+
+  async function handleFirstUpload(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    beginMode("upload");
     setFiles([file]);
     await fillFromPhoto(file);
   }
@@ -252,6 +275,52 @@ export function RecordForm({
   const hasPhotoPreview = previews.length > 0;
   const isPhotoEntry = entryMode === "camera" || entryMode === "upload";
 
+  const topStatus = useMemo(() => {
+    if (scanLoading || scanState === "reading") {
+      return {
+        tone: "active",
+        title: "レシートを読み取っています",
+        subtitle: "分かったところから入力します。先に入力しても大丈夫です。",
+      };
+    }
+    if (scanState === "filled") {
+      return {
+        tone: "done",
+        title: "分かったところを入力しました",
+        subtitle: "内容を確認して、必要なところだけ直してください。",
+      };
+    }
+    if (scanState === "failed") {
+      return {
+        tone: "warning",
+        title: "読み取れなかったところがあります",
+        subtitle: "写真は追加されています。分かる範囲で入力してください。",
+      };
+    }
+    if (scanState === "partial" || needsManualHelp) {
+      return {
+        tone: "warning",
+        title: "足りないところだけ入力してください",
+        subtitle: "読み取れなかった項目は手入力できます。",
+      };
+    }
+    if (entryMode === "manual" || entryMode === "income") {
+      return {
+        tone: "plain",
+        title: "足りないところだけ入力してください",
+        subtitle: "入力した内容を保存すると、一覧と集計に反映されます。",
+      };
+    }
+    if (isPhotoEntry && hasPhotoPreview) {
+      return {
+        tone: "plain",
+        title: "内容を確認してください",
+        subtitle: "必要なところだけ直して保存します。",
+      };
+    }
+    return null;
+  }, [entryMode, hasPhotoPreview, isPhotoEntry, needsManualHelp, scanLoading, scanState]);
+
   const entryHeading = useMemo(() => {
     if (entryMode === "income") {
       return {
@@ -324,10 +393,11 @@ export function RecordForm({
                 <input hidden type="file" accept="image/*" capture="environment" onChange={handleFirstCamera} />
               </label>
               <div className="sub-actions">
-                <button type="button" onClick={() => beginMode("upload")}>
+                <label className="sub-action-file">
                   <ImagePlus size={18} />
                   写真を選ぶ
-                </button>
+                  <input hidden type="file" accept="image/*" onChange={handleFirstUpload} />
+                </label>
                 <button type="button" onClick={() => setSelectingPhotoMode(false)}>
                   <Keyboard size={18} />
                   戻る
@@ -359,6 +429,22 @@ export function RecordForm({
               ) : null}
             </div>
           </Card>
+
+          {topStatus ? (
+            <Card className={`list-card reading-status-card ${topStatus.tone}`}>
+              <div className="reading-status-row">
+                <span className="reading-status-icon" aria-hidden="true">
+                  {topStatus.tone === "active" ? <LoaderCircle size={20} /> : <CheckCircle2 size={20} />}
+                </span>
+                <div>
+                  <strong>{topStatus.title}</strong>
+                  <p className="subtitle" style={{ margin: "4px 0 0" }}>
+                    {topStatus.subtitle}
+                  </p>
+                </div>
+              </div>
+            </Card>
+          ) : null}
 
           <RecordTypeTabs value={values.recordType} onChange={(next) => updateValue("recordType", next)} />
 

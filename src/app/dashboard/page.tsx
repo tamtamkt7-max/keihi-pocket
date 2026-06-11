@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Camera } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { AuthGuard } from "@/components/auth/AuthGuard";
@@ -15,6 +14,7 @@ import { RecentRecords } from "@/components/dashboard/RecentRecords";
 import { FirstRunGuide } from "@/components/dashboard/FirstRunGuide";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { ReceiptCaptureButton } from "@/components/records/ReceiptCaptureButton";
 import { AdSlot } from "@/components/ads/AdSlot";
 import { RecordItem } from "@/types/record";
 
@@ -62,10 +62,9 @@ export default function DashboardPage() {
             title="経費ポケット"
             description="レシートを撮って、経費と売上をまとめて管理。"
             actions={
-              <Link href="/records/new" className="button primary header-camera-button">
-                <Camera size={18} />
-                登録する
-              </Link>
+              <ReceiptCaptureButton className="button primary header-camera-button" compact>
+                撮る
+              </ReceiptCaptureButton>
             }
           />
 
@@ -78,10 +77,7 @@ export default function DashboardPage() {
               </p>
             </div>
             <div className="home-intro-actions">
-              <Link href="/records/new" className="button primary">
-                <Camera size={18} />
-                登録する
-              </Link>
+              <ReceiptCaptureButton>まずは撮る</ReceiptCaptureButton>
               <Link href="/reports" className="button secondary">
                 集計を見る
               </Link>
