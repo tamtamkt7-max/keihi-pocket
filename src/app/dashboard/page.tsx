@@ -77,7 +77,9 @@ export default function DashboardPage() {
               </p>
             </div>
             <div className="home-intro-actions">
-              <ReceiptCaptureButton>まずは撮る</ReceiptCaptureButton>
+              <Link href="/records/new" className="button primary">
+                登録する
+              </Link>
               <Link href="/reports" className="button secondary">
                 集計を見る
               </Link>

@@ -27,7 +27,7 @@ export function OcrCandidatePanel({
     return (
       <Card className="list-card reading-status-card">
         <div className="heading reading-status-heading" style={{ marginBottom: 0 }}>
-          <h3>写真を確認しています...</h3>
+          <h3>読み取り中</h3>
           <span className="badge primary">自動入力中</span>
         </div>
       </Card>

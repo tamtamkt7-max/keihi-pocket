@@ -42,12 +42,14 @@ const DISCOUNT_WORDS = /(値引|割引|クーポン|割戻|返品|返金|ポイ�
 const SUBTOTAL_WORDS = /(小計|税抜小計|税込小計|商品計|内税|外税|消費税|税額|sub\s*total|subtotal|tax)/i;
 const CARD_DETAIL_WORDS = /(承認番号|取引番号|カード番号|会員番号|端末番号|伝票番号|照会番号|登録番号|JAN|No\.?)/i;
 const AMOUNT_EXCLUDE_WORDS = /(電話|tel|fax|〒|郵便|会員|カード番号|承認|取引|端末|レシート|伝票|No\.?|番号|登録番号|JAN|税率|内税|外税|消費税|小計|担当|時刻|日時|単価|数量|個数|点数|税額)/i;
-const VENDOR_EXCLUDE_WORDS = /(領収書|レシート|請求書|納品書|登録番号|TEL|電話|FAX|住所|合計|小計|税|担当|レジ|No\.?|番号|日時|時刻|郵便|現金|クレジット|カード|伝票|内税|外税)/i;
+const VENDOR_EXCLUDE_WORDS = /(領収書|レシート|請求書|納品書|ご利用明細|明細|登録番号|適格請求書|インボイス|TEL|電話|FAX|住所|〒|合計|小計|税込|税抜|消費税|税|担当|レジ|No\.?|番号|日時|時刻|日付|郵便|現金|クレジット|カード|伝票|内税|外税|お預り|預り|お釣り|釣銭|取引|承認|端末|会員|ポイント|領収|収入印紙)/i;
 const DATE_NEAR_WORDS = /(日付|日時|発行|利用|購入)/i;
 const SEPARATOR_LINE = /^[-=ー―─━*＊・\s]{4,}$/;
 const PRODUCT_LINE_WORDS = /(単価|数量|個|点|点数|品番|商品|部門|惣菜|食品|軽減|対象|@|×|x\s*\d|\d+\s*点)/i;
 const SMALL_AMOUNT_CONTEXT_WORDS = /(数量|単価|皿|点|個|税|率|割引|値引|ポイント|番号|区分|枚|名|人数|小計|内税|外税|税額)/i;
 const SUSHI_VENDOR_WORDS = /(スシロー|くら寿司|くらずし|はま寿司|かっぱ寿司|回転寿司|寿司|鮨|すし)/i;
+const VENDOR_CHAIN_WORDS = /(スシロー|セブン[-ー]?(イレブン)?|ローソン|ファミリーマート|ファミマ|ミニストップ|デイリーヤマザキ|ヨークベニマル|カインズ|ダイソー|Amazon|アマゾン|Uber\s*Eats|ウーバー|マクドナルド|モスバーガー|スターバックス|ドトール|コメダ|吉野家|すき家|松屋|ココス|ガスト|サイゼリヤ|イオン|イトーヨーカドー|西友|業務スーパー|ツルハ|ウエルシア|マツモトキヨシ|カワチ|コメリ|ニトリ|無印良品|ユニクロ)/i;
+const VENDOR_WEAK_WORDS = /(本日|毎度|ありがとう|ありがとうございました|またお越し|お買上|お買い上げ|営業時間|営業|返品|交換|担当|係|様|控え|保管|対象|軽減|税率|割引|値引)/i;
 const SMALL_SUSPICIOUS_AMOUNT = 100;
 
 const MAX_REASONABLE_AMOUNT = 10_000_000;
@@ -126,8 +128,15 @@ function suspiciousVendor(text: string, provider: Provider) {
   const stripped = text.replace(/\s+/g, "");
   if (stripped.length < 2 || stripped.length > 28) return true;
   if (VENDOR_EXCLUDE_WORDS.test(text)) return true;
+  if (VENDOR_WEAK_WORDS.test(text)) return true;
+  if (/https?:\/\/|www\.|\.com|\.jp/i.test(text)) return true;
+  if (/〒\s*\d{3}-?\d{4}/.test(text)) return true;
+  if (/(^|[^A-Za-z0-9])T\d{13}([^A-Za-z0-9]|$)/i.test(text)) return true;
+  if (/\d{1,4}[\/.\-年]\d{1,2}[\/.\-月]\d{1,2}/.test(text)) return true;
+  if (/\d{1,2}[:：]\d{2}/.test(text)) return true;
+  if (/[¥￥]\s*\d|(?:^|\s)\d{1,3}(?:,\d{3})+(?:円)?/.test(text)) return true;
   if (/^[\d\s\-:/.]+$/.test(stripped)) return true;
-  if ((stripped.match(/\d/g) || []).length / stripped.length > 0.28) return true;
+  if ((stripped.match(/\d/g) || []).length / stripped.length > 0.22 && !/[店店舗]/.test(stripped)) return true;
   if ((stripped.match(/[A-Za-zぁ-んァ-ン一-龠々ー]/g) || []).length / stripped.length < (provider === "fallback" ? 0.52 : 0.42)) return true;
   if (/[@#%*_=]{2,}/.test(stripped)) return true;
   if (provider === "fallback" && /[^\wぁ-んァ-ン一-龠々ー()\s・&.,'-]/.test(stripped)) return true;
@@ -137,8 +146,38 @@ function suspiciousVendor(text: string, provider: Provider) {
 function normalizeVendor(text: string) {
   return text
     .replace(/^[\s*■□◆◇・.\-]+/, "")
+    .replace(/^(店舗名|店名|事業者名|販売者)[:：]\s*/, "")
+    .replace(/\s*(様|御中)$/, "")
     .replace(/\s{2,}/g, " ")
     .trim();
+}
+
+function vendorTextScore(text: string) {
+  let score = 0;
+  if (VENDOR_CHAIN_WORDS.test(text)) score += 0.34;
+  if (/(店|店舗|ストア|マート|ショップ|商店|商会|株式会社|有限会社|\(株\)|（株）|Inc\.?|LLC|Cafe|Coffee|Store|Shop|Market|Mart)/i.test(text)) {
+    score += 0.18;
+  }
+  if (/[ァ-ヶー]{3,}/.test(text)) score += 0.08;
+  if (/[一-龠々]{2,}/.test(text)) score += 0.06;
+  if (/[A-Za-z]{3,}/.test(text)) score += 0.06;
+  if (/店$/.test(text)) score += 0.1;
+  if (/支店|本店|営業所|センター/.test(text)) score += 0.08;
+  if (text.length >= 2 && text.length <= 16) score += 0.08;
+  if (text.length > 20) score -= 0.08;
+  return score;
+}
+
+function mergeVendorLines(current: string, next?: string) {
+  if (!next) return current;
+  const first = normalizeVendor(current);
+  const second = normalizeVendor(next);
+  if (!first || !second) return first;
+  if (suspiciousVendor(second, "vision")) return first;
+  if (/店$/.test(second) || /^(本店|.+支店|.+店|.+営業所)$/.test(second)) {
+    return `${first} ${second}`.trim();
+  }
+  return first;
 }
 
 function parseDateCandidates(lines: ReceiptLine[], rawText: string, provider: Provider): ScoredValue<string>[] {
@@ -559,19 +598,23 @@ function parseVendorCandidates(lines: ReceiptLine[], provider: Provider): Scored
   const candidates = new Map<string, ScoredValue<string>>();
   const sortedTopLines = [...lines]
     .sort((a, b) => a.y - b.y || a.x - b.x)
-    .slice(0, 8);
+    .slice(0, 14);
 
   sortedTopLines.forEach((line, index) => {
-    const text = normalizeVendor(line.text);
+    const nextLine = sortedTopLines[index + 1];
+    const text = mergeVendorLines(line.text, nextLine?.text);
     if (suspiciousVendor(text, provider)) return;
 
     let score = provider === "fallback" ? 0.34 : 0.45;
-    if (index <= 2) score += 0.14;
+    if (index <= 2) score += 0.2;
+    else if (index <= 5) score += 0.12;
     if (line.y < 160) score += 0.1;
-    if (/(店|ストア|マート|ショップ|商店|株式会社|有限会社|\(株\)|Inc\.?|LLC|Cafe|Store|Shop)/i.test(text)) score += 0.16;
-    if (text.length >= 2 && text.length <= 16) score += 0.08;
+    if (line.y < 260) score += 0.06;
+    score += vendorTextScore(text);
     if (/^[ァ-ヶーA-Za-z0-9&.'\- ]+$/.test(text)) score += 0.04;
     if (/^[一-龠ぁ-んァ-ヶーA-Za-z0-9&.'\- ]+$/.test(text)) score += 0.04;
+    if (lineHasNumber(line.text)) score -= 0.14;
+    if (nextLine && text.includes(nextLine.text.trim())) score += 0.06;
     if (line.confidence) score += (line.confidence - 0.5) * (provider === "fallback" ? 0.12 : 0.18);
 
     const next = { value: text, confidence: clamp(score), reason: index <= 2 ? "top-lines" : "upper-area" };

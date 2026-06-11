@@ -221,8 +221,6 @@ export function RecordForm({
         fiscalYearStartMonth,
       });
 
-      let detailQuery = "";
-
       if (files.length > 0) {
         try {
           const imageUrls = await uploadRecordImages({ userId, recordId: id, files });
@@ -236,16 +234,13 @@ export function RecordForm({
               thumbnailUrl: valuesToSave.thumbnailUrl || imageUrls[0] || null,
               fiscalYearStartMonth,
             });
-          } else {
-            detailQuery = "?saved=details-only";
           }
         } catch (error) {
           console.error("record image save failed", error);
-          detailQuery = "?saved=details-only";
         }
       }
 
-      router.push(`/records/${id}${detailQuery}`);
+      router.push(`/records/${id}`);
     } catch (error) {
       if (isDemoStorageQuotaError(error)) {
         setErrors(["保存できる量を超えました。古いお試しデータを整理してから、もう一度お試しください。"]);
@@ -271,7 +266,7 @@ export function RecordForm({
     { label: "金額", ready: Number(values.amount) > 0 },
     { label: values.recordType === "income" ? "入金元" : "お店・相手先", ready: Boolean(values.vendorName) },
   ];
-  const readyCount = requiredChecks.filter((item) => item.ready).length;
+  const readyChecks = requiredChecks.filter((item) => item.ready);
   const hasPhotoPreview = previews.length > 0;
   const isPhotoEntry = entryMode === "camera" || entryMode === "upload";
 
@@ -338,7 +333,7 @@ export function RecordForm({
 
     return {
       title: "内容を確認",
-      subtitle: scanLoading ? "写真を確認しています..." : "足りないところだけ直して保存します。",
+      subtitle: scanLoading ? "レシートを読み取っています" : "足りないところだけ直して保存します。",
     };
   }, [entryMode, hasPhotoPreview, isPhotoEntry, scanLoading]);
 
@@ -492,17 +487,19 @@ export function RecordForm({
             <div className="heading">
               <div>
                 <h3>{values.recordType === "income" ? "登録する内容" : "確認する内容"}</h3>
-                <p className="subtitle">{readyCount}/3 入力できています</p>
+                <p className="subtitle">{readyChecks.length}/3 入力済み</p>
               </div>
               {values.amount > 0 || values.vendorName ? <CheckCircle2 className="success-icon" size={24} /> : null}
             </div>
-            <div className="readiness-list">
-              {requiredChecks.map((item) => (
-                <span key={item.label} className={`readiness-pill ${item.ready ? "ready" : ""}`}>
-                  {item.ready ? "入力済み" : "あと少し"}・{item.label}
-                </span>
-              ))}
-            </div>
+            {readyChecks.length > 0 ? (
+              <div className="readiness-list">
+                {readyChecks.map((item) => (
+                  <span key={item.label} className="readiness-pill ready">
+                    入力済み・{item.label}
+                  </span>
+                ))}
+              </div>
+            ) : null}
             <RecordBasicFields
               values={values}
               categories={categories}
@@ -516,7 +513,7 @@ export function RecordForm({
           <div className="sticky-actions">
             <div className="row save-row">
               <Button disabled={loading || scanLoading} onClick={handleSave}>
-                {scanLoading ? "写真を確認しています..." : loading ? "保存しています..." : "この内容で保存"}
+                {scanLoading ? "読み取り中..." : loading ? "保存しています..." : "この内容で保存"}
               </Button>
               <Button variant="secondary" onClick={() => router.push("/dashboard")}>
                 ホームへ戻る
