@@ -53,7 +53,7 @@ export function exportRecordsCsv(records: RecordItem[], categories: Category[]) 
     item.transactionDate,
     item.recordType === "expense" ? "経費" : "売上",
     item.vendorName,
-    getCategoryName(categories, item.categoryId),
+    getCategoryName(categories, item.categoryId, item.categoryName),
     String(item.amount),
     `${item.businessUsePercent}%`,
     String(item.calculatedBusinessAmount),

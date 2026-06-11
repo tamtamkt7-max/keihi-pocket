@@ -7,6 +7,7 @@ export const recordSchema = z.object({
   amount: z.coerce.number().min(1, "金額を入れてください"),
   vendorName: z.string().min(1, "お店・相手先を入れてください"),
   categoryId: z.string().nullable(),
+  categoryName: z.string().optional(),
   tagIds: z.array(z.string()),
   paymentMethod: z.enum(["cash", "credit", "bank", "e_money", "other"]),
   businessUsePercent: z.coerce.number().min(0).max(100),

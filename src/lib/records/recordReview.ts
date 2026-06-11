@@ -18,6 +18,12 @@ function hasLowConfidence(item: RecordItem) {
   return values.some((value) => value > 0 && value < 0.35);
 }
 
+function hasUsefulCategory(item: RecordItem) {
+  const name = (item.categoryName || "").trim();
+  if (item.categoryId && name !== "未分類" && name !== "あとで確認") return true;
+  return Boolean(name && name !== "未分類" && name !== "あとで確認");
+}
+
 export function getRecordReview(item: RecordItem): RecordReview {
   if (item.status === "hold") {
     return { state: "hold", label: "保留", tone: "warning", reasons: ["あとで確認する記録です"] };
@@ -30,7 +36,7 @@ export function getRecordReview(item: RecordItem): RecordReview {
   const reasons: string[] = [];
   if (!item.transactionDate) reasons.push("日付なし");
   if (!Number(item.amount)) reasons.push("金額なし");
-  if (!item.categoryId) reasons.push("分類なし");
+  if (!hasUsefulCategory(item)) reasons.push("分類なし");
   if (hasLowConfidence(item)) reasons.push("読み取り結果を確認");
 
   if (reasons.length > 0) {

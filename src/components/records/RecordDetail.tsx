@@ -42,7 +42,7 @@ export function RecordDetail({
           </div>
           <div className="field">
             <label>分類</label>
-            <div>{category?.name || "未分類"}</div>
+            <div>{category?.name || item.categoryName || "未分類"}</div>
           </div>
           <div className="field">
             <label>種類</label>

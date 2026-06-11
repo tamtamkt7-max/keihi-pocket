@@ -8,9 +8,11 @@ import { RecordItem } from "@/types/record";
 import { consumePendingReceiptCapture } from "@/lib/capture/pendingReceiptCapture";
 import { recordSchema } from "@/lib/validations/recordSchema";
 import { saveRecord } from "@/lib/firestore/records";
+import { saveCategory } from "@/lib/firestore/categories";
 import { uploadRecordImages } from "@/lib/storage/uploadRecordImages";
 import { extractReceiptData } from "@/lib/ocr/extractReceiptData";
 import { isDemoStorageQuotaError } from "@/lib/mock/localDb";
+import { getDefaultCategoryById } from "@/lib/categories/defaultCategories";
 import { ImageUploader } from "./ImageUploader";
 import { OcrCandidatePanel } from "./OcrCandidatePanel";
 import { RecordTypeTabs } from "./RecordTypeTabs";
@@ -62,6 +64,7 @@ export function RecordForm({
     amount: initial?.amount || 0,
     vendorName: initial?.vendorName || "",
     categoryId: initial?.categoryId || null,
+    categoryName: initial?.categoryName || "",
     tagIds: initial?.tagIds || [],
     paymentMethod: initial?.paymentMethod || "cash",
     businessUsePercent: initial?.businessUsePercent ?? 100,
@@ -164,14 +167,32 @@ export function RecordForm({
     setErrors([]);
 
     try {
-      const parsed = recordSchema.safeParse(values);
+      let valuesToSave = values;
+      if (values.categoryId?.startsWith("default-")) {
+        const fallbackCategory = getDefaultCategoryById(values.categoryId);
+        if (fallbackCategory) {
+          const category = { ...fallbackCategory, userId };
+          valuesToSave = {
+            ...values,
+            categoryId: category.id,
+            categoryName: category.name,
+          };
+          try {
+            await saveCategory(category);
+          } catch (categoryError) {
+            console.warn("category fallback save failed", categoryError);
+          }
+        }
+      }
+
+      const parsed = recordSchema.safeParse(valuesToSave);
       if (!parsed.success) {
         setErrors(parsed.error.issues.map((issue) => issue.message));
         return;
       }
 
       const id = await saveRecord({
-        ...values,
+        ...valuesToSave,
         id: initial?.id,
         userId,
         fiscalYearStartMonth,
@@ -184,12 +205,12 @@ export function RecordForm({
           const imageUrls = await uploadRecordImages({ userId, recordId: id, files });
           if (imageUrls.length > 0) {
             await saveRecord({
-              ...values,
+              ...valuesToSave,
               id,
               userId,
-              createdAt: values.createdAt || new Date().toISOString(),
-              imageUrls: [...values.imageUrls, ...imageUrls],
-              thumbnailUrl: values.thumbnailUrl || imageUrls[0] || null,
+              createdAt: valuesToSave.createdAt || new Date().toISOString(),
+              imageUrls: [...valuesToSave.imageUrls, ...imageUrls],
+              thumbnailUrl: valuesToSave.thumbnailUrl || imageUrls[0] || null,
               fiscalYearStartMonth,
             });
           } else {
@@ -253,11 +274,13 @@ export function RecordForm({
   }, [entryMode, hasPhotoPreview, isPhotoEntry, scanLoading]);
 
   useEffect(() => {
-    console.info("record form categories loaded", {
-      categoriesCount: categories.length,
-      recordType: values.recordType,
-      categoriesLoading,
-    });
+    if (process.env.NODE_ENV !== "production") {
+      console.info("record form categories loaded", {
+        categoriesCount: categories.length,
+        recordType: values.recordType,
+        categoriesLoading,
+      });
+    }
   }, [categories, categoriesLoading, values.recordType]);
 
   return (

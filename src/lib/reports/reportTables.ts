@@ -2,9 +2,10 @@ import { Category } from "@/types/category";
 import { RecordItem } from "@/types/record";
 import { getRecordReview } from "@/lib/records/recordReview";
 
-export function getCategoryName(categories: Category[], categoryId: string | null) {
-  if (!categoryId) return "未分類";
-  return categories.find((item) => item.id === categoryId)?.name || "未分類";
+export function getCategoryName(categories: Category[], categoryId: string | null, categoryName?: string) {
+  const savedName = (categoryName || "").trim();
+  if (!categoryId) return savedName || "未分類";
+  return categories.find((item) => item.id === categoryId)?.name || savedName || "未分類";
 }
 
 export function getReportPeriod(records: RecordItem[]) {
@@ -19,7 +20,7 @@ export function getCategoryRows(records: RecordItem[], categories: Category[]) {
   const map = new Map<string, { name: string; count: number; total: number }>();
 
   for (const record of records) {
-    const name = getCategoryName(categories, record.categoryId);
+    const name = getCategoryName(categories, record.categoryId, record.categoryName);
     const current = map.get(name) || { name, count: 0, total: 0 };
     current.count += 1;
     current.total += record.recordType === "income" ? record.amount : record.calculatedBusinessAmount;
@@ -46,6 +47,6 @@ export function getMonthlyRows(records: RecordItem[]) {
 
 export function getReviewRows(records: RecordItem[], categories: Category[]) {
   return records
-    .map((record) => ({ record, review: getRecordReview(record), categoryName: getCategoryName(categories, record.categoryId) }))
+    .map((record) => ({ record, review: getRecordReview(record), categoryName: getCategoryName(categories, record.categoryId, record.categoryName) }))
     .filter((item) => item.review.state === "needs_review" || item.review.state === "hold");
 }

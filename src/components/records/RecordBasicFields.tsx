@@ -1,7 +1,7 @@
 import { Category } from "@/types/category";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
-import { getDefaultCategoryDescription } from "@/lib/categories/defaultCategories";
+import { getDefaultCategoriesForRecordType, getDefaultCategoryDescription } from "@/lib/categories/defaultCategories";
 
 interface Props {
   values: any;
@@ -20,18 +20,26 @@ export function RecordBasicFields({ values, categories, categoriesLoading = fals
     .filter((item) => item.isActive !== false)
     .sort((a, b) => (a.sortOrder ?? 9999) - (b.sortOrder ?? 9999));
   const filteredCategories = activeCategories.filter((item) => isVisibleForRecordType(item, values.recordType));
-  const visibleCategories = filteredCategories.length > 0 ? filteredCategories : activeCategories;
-  const selectedCategory = activeCategories.find((item) => item.id === values.categoryId);
+  const fallbackCategories = getDefaultCategoriesForRecordType(values.recordType);
+  const visibleCategories =
+    filteredCategories.length > 0
+      ? filteredCategories
+      : activeCategories.length > 0
+        ? activeCategories
+        : fallbackCategories;
+  const selectedCategory = [...activeCategories, ...fallbackCategories].find((item) => item.id === values.categoryId);
 
-  console.info("category filter result", {
-    categoriesCount: categories.length,
-    visibleCategoriesCount: visibleCategories.length,
-    recordType: values.recordType,
-    categoryTypes: [...new Set(categories.map((item) => item.type || "none"))],
-  });
-  console.info("categories count", categories.length);
-  console.info("visible categories count", visibleCategories.length);
-  console.info("record type", values.recordType);
+  if (process.env.NODE_ENV !== "production") {
+    console.info("category filter result", {
+      categoriesCount: categories.length,
+      visibleCategoriesCount: visibleCategories.length,
+      recordType: values.recordType,
+      categoryTypes: [...new Set(categories.map((item) => item.type || "none"))],
+    });
+    console.info("categories count", categories.length);
+    console.info("visible categories count", visibleCategories.length);
+    console.info("record type", values.recordType);
+  }
 
   return (
     <div className="simple-form">
@@ -59,7 +67,12 @@ export function RecordBasicFields({ values, categories, categoriesLoading = fals
         <Select
           value={values.categoryId || ""}
           disabled={categoriesLoading && visibleCategories.length === 0}
-          onChange={(event) => onChange("categoryId", event.target.value || null)}
+          onChange={(event) => {
+            const nextId = event.target.value || null;
+            const nextCategory = [...activeCategories, ...fallbackCategories].find((item) => item.id === nextId);
+            onChange("categoryId", nextId);
+            onChange("categoryName", nextCategory?.name || "");
+          }}
         >
           <option value="">あとで選ぶ</option>
           {selectedCategory && !visibleCategories.some((item) => item.id === selectedCategory.id) ? (

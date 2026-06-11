@@ -160,7 +160,7 @@ export async function exportRecordsPdf(records: RecordItem[], categories: Catego
     addText(pdf, item.transactionDate || "-", 14, y);
     addText(pdf, item.recordType === "expense" ? "経費" : "売上", 42, y);
     addText(pdf, truncate(item.vendorName || "名前なし", 14), 62, y);
-    addText(pdf, truncate(getCategoryName(categories, item.categoryId), 12), 112, y);
+    addText(pdf, truncate(getCategoryName(categories, item.categoryId, item.categoryName), 12), 112, y);
     addText(pdf, formatCurrency(item.amount), 166, y, { align: "right" });
     addText(pdf, getRecordStatusLabel(item), 190, y, { align: "right" });
     if (item.memo) {

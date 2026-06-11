@@ -40,6 +40,7 @@ export interface RecordItem {
   amount: number;
   vendorName: string;
   categoryId: string | null;
+  categoryName?: string;
   tagIds: string[];
   paymentMethod: PaymentMethod;
   businessUsePercent: number;

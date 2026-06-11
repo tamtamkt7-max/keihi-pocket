@@ -49,3 +49,17 @@ export const defaultCategories: DefaultCategory[] = [
 export function getDefaultCategoryDescription(name: string) {
   return defaultCategories.find((item) => item.name === name)?.description || "";
 }
+
+export function getDefaultCategoriesForRecordType(recordType: string): Category[] {
+  return defaultCategories
+    .filter((item) => item.type === recordType || item.type === "common")
+    .map((item) => ({
+      id: `default-${item.type}-${item.name}`,
+      userId: "default",
+      ...item,
+    }));
+}
+
+export function getDefaultCategoryById(id: string) {
+  return getDefaultCategoriesForRecordType("expense").concat(getDefaultCategoriesForRecordType("income")).find((item) => item.id === id);
+}

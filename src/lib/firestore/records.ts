@@ -51,6 +51,7 @@ function normalizeRecord(item: Partial<RecordItem>, fiscalYearStartMonth = 1): O
     amount: Number(item.amount || 0),
     vendorName: item.vendorName || "",
     categoryId: item.categoryId ?? null,
+    categoryName: item.categoryName || "",
     tagIds: item.tagIds || [],
     paymentMethod: item.paymentMethod || "cash",
     businessUsePercent: Number(item.businessUsePercent ?? 100),
