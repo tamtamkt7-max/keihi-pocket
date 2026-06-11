@@ -23,6 +23,8 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 
 type EntryMode = "camera" | "upload" | "manual" | "income";
+type FieldSource = "empty" | "auto-basic" | "auto-high" | "user-edited";
+type FieldKey = "transactionDate" | "amount" | "vendorName" | "categoryId" | "categoryName" | "paymentMethod" | "memo";
 
 type Props = {
   userId: string;
@@ -49,7 +51,7 @@ export function RecordForm({
 }: Props) {
   const router = useRouter();
   const consumedPending = useRef(false);
-  const touchedFields = useRef(new Set<string>());
+  const fieldSourcesRef = useRef<Record<string, FieldSource>>({});
   const [loading, setLoading] = useState(false);
   const [scanLoading, setScanLoading] = useState(false);
   const [highAccuracyLoading, setHighAccuracyLoading] = useState(false);
@@ -108,8 +110,19 @@ export function RecordForm({
   }, [initial]);
 
   function updateValue(key: string, value: any) {
-    touchedFields.current.add(key);
+    fieldSourcesRef.current = { ...fieldSourcesRef.current, [key]: "user-edited" };
     setValues((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function canAutoReplace(key: FieldKey) {
+    const source = fieldSourcesRef.current[key] || "empty";
+    return source === "empty" || source === "auto-basic" || source === "auto-high";
+  }
+
+  function markAutoSource(key: FieldKey, source: Extract<FieldSource, "auto-basic" | "auto-high">) {
+    const current = fieldSourcesRef.current[key] || "empty";
+    if (current === "user-edited") return;
+    fieldSourcesRef.current = { ...fieldSourcesRef.current, [key]: source };
   }
 
   function findCategoryBySuggestion(suggestion?: string | null) {
@@ -152,20 +165,26 @@ export function RecordForm({
     setScanState("reading");
     try {
       const result = await extractReceiptData(file);
-      setValues((prev) => ({
-        ...prev,
-        ocrRawText: result.rawText,
-        ocrExtracted: result.extracted,
-        transactionDate: touchedFields.current.has("transactionDate")
-          ? prev.transactionDate
-          : result.extracted.date || prev.transactionDate,
-        amount: touchedFields.current.has("amount")
-          ? prev.amount
-          : result.extracted.amount ?? prev.amount,
-        vendorName: touchedFields.current.has("vendorName")
-          ? prev.vendorName
-          : result.extracted.vendorName || prev.vendorName,
-      }));
+      setValues((prev) => {
+        const next = {
+          ...prev,
+          ocrRawText: result.rawText,
+          ocrExtracted: result.extracted,
+        };
+        if (canAutoReplace("transactionDate") && result.extracted.date) {
+          next.transactionDate = result.extracted.date;
+          markAutoSource("transactionDate", "auto-basic");
+        }
+        if (canAutoReplace("amount") && typeof result.extracted.amount === "number") {
+          next.amount = result.extracted.amount;
+          markAutoSource("amount", "auto-basic");
+        }
+        if (canAutoReplace("vendorName") && result.extracted.vendorName) {
+          next.vendorName = result.extracted.vendorName;
+          markAutoSource("vendorName", "auto-basic");
+        }
+        return next;
+      });
       setScanState(result.extracted.date && result.extracted.amount && result.extracted.vendorName ? "filled" : "partial");
     } catch (error) {
       console.error("receipt read failed", error);
@@ -177,30 +196,48 @@ export function RecordForm({
 
   function applyHighAccuracyResult(result: HighAccuracyReceiptResult) {
     const category = findCategoryBySuggestion(result.categorySuggestion);
+    let keptUserInput = false;
     setValues((prev) => {
       const next = { ...prev };
-      if (!touchedFields.current.has("transactionDate") && !prev.transactionDate && result.date && result.confidence.date >= 0.55) {
+      if (canAutoReplace("transactionDate") && result.date && result.confidence.date >= 0.55) {
         next.transactionDate = result.date;
+        markAutoSource("transactionDate", "auto-high");
+      } else if (!canAutoReplace("transactionDate") && result.date) {
+        keptUserInput = true;
       }
-      if (!touchedFields.current.has("amount") && !Number(prev.amount) && typeof result.amount === "number" && result.confidence.amount >= 0.55) {
+      if (canAutoReplace("amount") && typeof result.amount === "number" && result.confidence.amount >= 0.55) {
         next.amount = result.amount;
+        markAutoSource("amount", "auto-high");
+      } else if (!canAutoReplace("amount") && typeof result.amount === "number") {
+        keptUserInput = true;
       }
-      if (!touchedFields.current.has("vendorName") && !prev.vendorName && result.vendor && result.confidence.vendor >= 0.5) {
+      if (canAutoReplace("vendorName") && result.vendor && result.confidence.vendor >= 0.5) {
         next.vendorName = result.vendor;
+        markAutoSource("vendorName", "auto-high");
+      } else if (!canAutoReplace("vendorName") && result.vendor) {
+        keptUserInput = true;
       }
-      if (!touchedFields.current.has("paymentMethod") && result.paymentMethod) {
+      if (canAutoReplace("paymentMethod") && result.paymentMethod) {
         if (/現金/.test(result.paymentMethod)) next.paymentMethod = "cash";
         if (/クレジット|カード/.test(result.paymentMethod)) next.paymentMethod = "credit";
         if (/電子|Pay|IC|交通系/.test(result.paymentMethod)) next.paymentMethod = "e_money";
         if (/振込|銀行/.test(result.paymentMethod)) next.paymentMethod = "bank";
+        markAutoSource("paymentMethod", "auto-high");
+      } else if (!canAutoReplace("paymentMethod") && result.paymentMethod) {
+        keptUserInput = true;
       }
-      if (!isUsefulCategoryName(prev.categoryName) && (!prev.categoryId || prev.categoryName === "未分類" || prev.categoryName === "あとで確認")) {
+      if (canAutoReplace("categoryName") && canAutoReplace("categoryId") && (!isUsefulCategoryName(prev.categoryName) || fieldSourcesRef.current.categoryName !== "user-edited")) {
         if (category) {
           next.categoryId = category.id;
           next.categoryName = category.name;
+          markAutoSource("categoryId", "auto-high");
+          markAutoSource("categoryName", "auto-high");
         } else if (result.categorySuggestion) {
           next.categoryName = result.categorySuggestion;
+          markAutoSource("categoryName", "auto-high");
         }
+      } else if ((!canAutoReplace("categoryName") || !canAutoReplace("categoryId")) && result.categorySuggestion) {
+        keptUserInput = true;
       }
       next.ocrExtracted = {
         ...prev.ocrExtracted,
@@ -221,13 +258,16 @@ export function RecordForm({
         result.phone ? `電話: ${result.phone}` : "",
         result.items.length ? `明細: ${result.items.map((item) => [item.name, item.quantity, item.unitPrice ? `${item.unitPrice}円` : "", item.amount ? `${item.amount}円` : ""].filter(Boolean).join(" ")).join(" / ")}` : "",
       ].filter(Boolean);
-      if (!touchedFields.current.has("memo") && !prev.memo && memoParts.length) {
+      if (canAutoReplace("memo") && !prev.memo && memoParts.length) {
         next.memo = memoParts.join("\n");
+        markAutoSource("memo", "auto-high");
+      } else if (!canAutoReplace("memo") && memoParts.length) {
+        keptUserInput = true;
       }
       return next;
     });
     setScanState("filled");
-    setHighAccuracyMessage("読み取れたところだけ入力しました。");
+    setHighAccuracyMessage(keptUserInput ? "読み取れたところだけ反映しました。入力済みのところはそのままです。" : "読み取れたところだけ反映しました。");
   }
 
   async function handleHighAccuracyRead() {
@@ -357,16 +397,10 @@ export function RecordForm({
   const readyChecks = requiredChecks.filter((item) => item.ready);
   const hasPhotoPreview = previews.length > 0;
   const isPhotoEntry = entryMode === "camera" || entryMode === "upload";
-  const hasUsefulCategory = isUsefulCategoryName(values.categoryName) || Boolean(values.categoryId && values.categoryName);
   const shouldOfferHighAccuracy =
     isPhotoEntry &&
     files.length > 0 &&
-    !scanLoading &&
-    (!values.vendorName ||
-      !Number(values.amount) ||
-      !hasUsefulCategory ||
-      (values.ocrExtracted?.vendorConfidence ?? 1) < 0.58 ||
-      (values.ocrExtracted?.amountConfidence ?? 1) < 0.58);
+    !scanLoading;
 
   const topStatus = useMemo(() => {
     if (scanLoading || scanState === "reading") {
@@ -616,6 +650,19 @@ export function RecordForm({
                     入力済み・{item.label}
                   </span>
                 ))}
+              </div>
+            ) : null}
+            {shouldOfferHighAccuracy || highAccuracyMessage ? (
+              <div className="inline-high-accuracy">
+                <div>
+                  <strong>店名や金額をもう一度読み取る</strong>
+                  {highAccuracyMessage ? <p className="subtitle">{highAccuracyMessage}</p> : null}
+                </div>
+                {shouldOfferHighAccuracy ? (
+                  <Button type="button" variant="secondary" disabled={highAccuracyLoading} onClick={handleHighAccuracyRead}>
+                    {highAccuracyLoading ? "読み取り中..." : "高精度で読み取る"}
+                  </Button>
+                ) : null}
               </div>
             ) : null}
             <RecordBasicFields

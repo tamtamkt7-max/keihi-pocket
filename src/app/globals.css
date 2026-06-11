@@ -811,6 +811,22 @@ body { min-height: 100vh; }
   animation: spin 1s linear infinite;
 }
 
+.inline-high-accuracy {
+  margin: 14px 0;
+  padding: 12px;
+  border: 1px solid rgba(17, 120, 101, 0.2);
+  border-radius: 8px;
+  background: #f8fffb;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.inline-high-accuracy .subtitle {
+  margin: 4px 0 0;
+}
+
 @keyframes spin {
   to {
     transform: rotate(360deg);
