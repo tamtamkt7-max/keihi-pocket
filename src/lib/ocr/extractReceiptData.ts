@@ -2,6 +2,7 @@
 
 import { OcrExtracted } from "@/types/record";
 import { createFallbackLines, extractReceiptFields } from "@/lib/receipt/extractReceiptFields";
+import { HighAccuracyReceiptResponse } from "@/lib/receipt/highAccuracyReceipt";
 
 type ReceiptAnalyzeResponse = {
   rawText: string;
@@ -63,6 +64,10 @@ async function normalizeImageForUpload(file: File) {
   }
 }
 
+export async function prepareReceiptImageForUpload(file: File) {
+  return normalizeImageForUpload(file);
+}
+
 async function runFallback(file: File): Promise<ReceiptAnalyzeResponse> {
   const Tesseract = (await import("tesseract.js")).default;
   const result = await Tesseract.recognize(file, "jpn+eng", {
@@ -99,4 +104,31 @@ export async function extractReceiptData(file: File): Promise<ReceiptAnalyzeResp
   }
 
   return runFallback(file);
+}
+
+export async function extractReceiptDataHighAccuracy(file: File): Promise<HighAccuracyReceiptResponse> {
+  const uploadFile = await normalizeImageForUpload(file);
+  const formData = new FormData();
+  formData.append("file", uploadFile);
+
+  try {
+    const response = await fetch("/api/receipt/ai-extract", {
+      method: "POST",
+      body: formData,
+    });
+    const data = (await response.json()) as HighAccuracyReceiptResponse;
+    if (!response.ok) {
+      return {
+        available: false,
+        message: data.message || "うまく読み取れませんでした。手入力できます。",
+      };
+    }
+    return data;
+  } catch (error) {
+    console.error("high accuracy receipt extraction failed", error);
+    return {
+      available: false,
+      message: "うまく読み取れませんでした。手入力できます。",
+    };
+  }
 }

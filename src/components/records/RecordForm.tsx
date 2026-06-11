@@ -10,9 +10,10 @@ import { recordSchema } from "@/lib/validations/recordSchema";
 import { saveRecord } from "@/lib/firestore/records";
 import { saveCategory } from "@/lib/firestore/categories";
 import { uploadRecordImages } from "@/lib/storage/uploadRecordImages";
-import { extractReceiptData } from "@/lib/ocr/extractReceiptData";
+import { extractReceiptData, extractReceiptDataHighAccuracy } from "@/lib/ocr/extractReceiptData";
 import { isDemoStorageQuotaError } from "@/lib/mock/localDb";
-import { getDefaultCategoryById } from "@/lib/categories/defaultCategories";
+import { getDefaultCategoriesForRecordType, getDefaultCategoryById } from "@/lib/categories/defaultCategories";
+import { HighAccuracyReceiptResult, isUsefulCategoryName } from "@/lib/receipt/highAccuracyReceipt";
 import { ImageUploader } from "./ImageUploader";
 import { OcrCandidatePanel } from "./OcrCandidatePanel";
 import { RecordTypeTabs } from "./RecordTypeTabs";
@@ -51,6 +52,8 @@ export function RecordForm({
   const touchedFields = useRef(new Set<string>());
   const [loading, setLoading] = useState(false);
   const [scanLoading, setScanLoading] = useState(false);
+  const [highAccuracyLoading, setHighAccuracyLoading] = useState(false);
+  const [highAccuracyMessage, setHighAccuracyMessage] = useState("");
   const [scanState, setScanState] = useState<"idle" | "reading" | "filled" | "partial" | "failed">("idle");
   const [files, setFiles] = useState<File[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
@@ -109,6 +112,19 @@ export function RecordForm({
     setValues((prev) => ({ ...prev, [key]: value }));
   }
 
+  function findCategoryBySuggestion(suggestion?: string | null) {
+    const name = (suggestion || "").trim();
+    if (!name) return undefined;
+    const normalize = (value: string) => value.replace(/\s+/g, "").toLowerCase();
+    const candidates = [...categories, ...getDefaultCategoriesForRecordType(values.recordType)]
+      .filter((item) => item.isActive !== false)
+      .filter((item, index, all) => all.findIndex((other) => other.name === item.name) === index);
+    return (
+      candidates.find((item) => normalize(item.name) === normalize(name)) ||
+      candidates.find((item) => normalize(item.name).includes(normalize(name)) || normalize(name).includes(normalize(item.name)))
+    );
+  }
+
   function beginMode(mode: EntryMode) {
     setStarted(true);
     setSelectingPhotoMode(false);
@@ -156,6 +172,78 @@ export function RecordForm({
       setScanState("failed");
     } finally {
       setScanLoading(false);
+    }
+  }
+
+  function applyHighAccuracyResult(result: HighAccuracyReceiptResult) {
+    const category = findCategoryBySuggestion(result.categorySuggestion);
+    setValues((prev) => {
+      const next = { ...prev };
+      if (!touchedFields.current.has("transactionDate") && !prev.transactionDate && result.date && result.confidence.date >= 0.55) {
+        next.transactionDate = result.date;
+      }
+      if (!touchedFields.current.has("amount") && !Number(prev.amount) && typeof result.amount === "number" && result.confidence.amount >= 0.55) {
+        next.amount = result.amount;
+      }
+      if (!touchedFields.current.has("vendorName") && !prev.vendorName && result.vendor && result.confidence.vendor >= 0.5) {
+        next.vendorName = result.vendor;
+      }
+      if (!touchedFields.current.has("paymentMethod") && result.paymentMethod) {
+        if (/現金/.test(result.paymentMethod)) next.paymentMethod = "cash";
+        if (/クレジット|カード/.test(result.paymentMethod)) next.paymentMethod = "credit";
+        if (/電子|Pay|IC|交通系/.test(result.paymentMethod)) next.paymentMethod = "e_money";
+        if (/振込|銀行/.test(result.paymentMethod)) next.paymentMethod = "bank";
+      }
+      if (!isUsefulCategoryName(prev.categoryName) && (!prev.categoryId || prev.categoryName === "未分類" || prev.categoryName === "あとで確認")) {
+        if (category) {
+          next.categoryId = category.id;
+          next.categoryName = category.name;
+        } else if (result.categorySuggestion) {
+          next.categoryName = result.categorySuggestion;
+        }
+      }
+      next.ocrExtracted = {
+        ...prev.ocrExtracted,
+        date: next.transactionDate || prev.ocrExtracted?.date,
+        amount: Number(next.amount) || prev.ocrExtracted?.amount,
+        vendorName: next.vendorName || prev.ocrExtracted?.vendorName,
+        dateConfidence: Math.max(prev.ocrExtracted?.dateConfidence || 0, result.confidence.date),
+        amountConfidence: Math.max(prev.ocrExtracted?.amountConfidence || 0, result.confidence.amount),
+        vendorConfidence: Math.max(prev.ocrExtracted?.vendorConfidence || 0, result.confidence.vendor),
+        vendorNameCandidates: [
+          ...(result.vendor ? [result.vendor] : []),
+          ...(prev.ocrExtracted?.vendorNameCandidates || []),
+        ].filter((value, index, all) => value && all.indexOf(value) === index).slice(0, 4),
+      };
+      const memoParts = [
+        result.time ? `時刻: ${result.time}` : "",
+        result.address ? `住所: ${result.address}` : "",
+        result.phone ? `電話: ${result.phone}` : "",
+        result.items.length ? `明細: ${result.items.map((item) => [item.name, item.quantity, item.unitPrice ? `${item.unitPrice}円` : "", item.amount ? `${item.amount}円` : ""].filter(Boolean).join(" ")).join(" / ")}` : "",
+      ].filter(Boolean);
+      if (!touchedFields.current.has("memo") && !prev.memo && memoParts.length) {
+        next.memo = memoParts.join("\n");
+      }
+      return next;
+    });
+    setScanState("filled");
+    setHighAccuracyMessage("読み取れたところだけ入力しました。");
+  }
+
+  async function handleHighAccuracyRead() {
+    const file = files[0];
+    if (!file || highAccuracyLoading) return;
+    setHighAccuracyLoading(true);
+    setHighAccuracyMessage("");
+    try {
+      const response = await extractReceiptDataHighAccuracy(file);
+      if (response.available && response.result) {
+        applyHighAccuracyResult(response.result);
+        return;
+      }
+      setHighAccuracyMessage(response.message || "うまく読み取れませんでした。手入力できます。");
+    } finally {
+      setHighAccuracyLoading(false);
     }
   }
 
@@ -269,6 +357,16 @@ export function RecordForm({
   const readyChecks = requiredChecks.filter((item) => item.ready);
   const hasPhotoPreview = previews.length > 0;
   const isPhotoEntry = entryMode === "camera" || entryMode === "upload";
+  const hasUsefulCategory = isUsefulCategoryName(values.categoryName) || Boolean(values.categoryId && values.categoryName);
+  const shouldOfferHighAccuracy =
+    isPhotoEntry &&
+    files.length > 0 &&
+    !scanLoading &&
+    (!values.vendorName ||
+      !Number(values.amount) ||
+      !hasUsefulCategory ||
+      (values.ocrExtracted?.vendorConfidence ?? 1) < 0.58 ||
+      (values.ocrExtracted?.amountConfidence ?? 1) < 0.58);
 
   const topStatus = useMemo(() => {
     if (scanLoading || scanState === "reading") {
@@ -479,6 +577,26 @@ export function RecordForm({
                 <p className="subtitle" style={{ margin: "6px 0 0" }}>
                   保存後も編集できます。
                 </p>
+              </div>
+            </Card>
+          ) : null}
+
+          {shouldOfferHighAccuracy || highAccuracyMessage ? (
+            <Card className="list-card high-accuracy-card">
+              <div className="heading" style={{ marginBottom: 0 }}>
+                <div>
+                  <strong>店名や金額をもう一度読み取ります</strong>
+                  {highAccuracyMessage ? (
+                    <p className="subtitle" style={{ margin: "6px 0 0" }}>
+                      {highAccuracyMessage}
+                    </p>
+                  ) : null}
+                </div>
+                {shouldOfferHighAccuracy ? (
+                  <Button type="button" variant="secondary" disabled={highAccuracyLoading} onClick={handleHighAccuracyRead}>
+                    {highAccuracyLoading ? "読み取り中..." : "高精度で読み取る"}
+                  </Button>
+                ) : null}
               </div>
             </Card>
           ) : null}

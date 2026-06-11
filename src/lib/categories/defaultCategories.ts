@@ -20,6 +20,7 @@ export const defaultCategories: DefaultCategory[] = [
   { name: "事務用品費", type: "expense", sortOrder: 220, isDefault: true, isActive: true, description: "ノート、封筒、事務用品など" },
   { name: "通信費", type: "expense", sortOrder: 230, isDefault: true, isActive: true, description: "スマホ代、ネット代など" },
   { name: "旅費交通費", type: "expense", sortOrder: 240, isDefault: true, isActive: true, description: "電車、バス、駐車場など" },
+  { name: "ガソリン代", type: "expense", sortOrder: 245, isDefault: true, isActive: true, description: "給油、燃料代など" },
   { name: "水道光熱費", type: "expense", sortOrder: 250, isDefault: true, isActive: true, description: "電気、ガス、水道など" },
   { name: "地代家賃", type: "expense", sortOrder: 260, isDefault: true, isActive: true, description: "事務所、店舗、作業場など" },
   { name: "広告宣伝費", type: "expense", sortOrder: 270, isDefault: true, isActive: true, description: "広告、チラシ、掲載料など" },

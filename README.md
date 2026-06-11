@@ -120,6 +120,21 @@ GOOGLE_CLOUD_PRIVATE_KEY=
 
 `GOOGLE_CLOUD_PRIVATE_KEY` は、改行を `\n` のまま入れてください。
 
+### 高精度読み取り
+
+店名や合計金額が通常の読み取りで取りにくい場合に、登録画面から「高精度で読み取る」を使えます。
+
+使う場合は `.env.local` に次を設定します。
+
+```env
+OPENAI_API_KEY=
+OPENAI_RECEIPT_MODEL=
+```
+
+`OPENAI_API_KEY` が未設定の場合でも、通常の読み取りと手入力はそのまま使えます。
+
+本番運用では、コストを抑えるために高精度読み取りの回数制限やログインユーザー限定の利用を検討してください。
+
 ## ログイン確認
 
 - PC: `http://localhost:3001/login`
