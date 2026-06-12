@@ -3,6 +3,7 @@ export type DocumentType = "receipt" | "invoice" | "statement" | "delivery_note"
 export type RecordStatus = "unconfirmed" | "confirmed" | "filed" | "hold";
 export type PaymentMethod = "cash" | "credit" | "bank" | "e_money" | "other";
 export type TaxType = "inclusive" | "exclusive" | "none";
+export type UsageType = "spending" | "business_expense";
 
 export interface AmountCandidate {
   value: number;
@@ -43,6 +44,7 @@ export interface RecordItem {
   categoryName?: string;
   tagIds: string[];
   paymentMethod: PaymentMethod;
+  usageType?: UsageType;
   businessUsePercent: number;
   calculatedBusinessAmount: number;
   taxType: TaxType;

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { HighAccuracyReceiptResult } from "@/lib/receipt/highAccuracyReceipt";
+import { highAccuracyEnabled, reserveHighAccuracyUsage, verifyFirebaseIdToken } from "@/lib/receipt/highAccuracyUsageServer";
 
 export const runtime = "nodejs";
 
@@ -105,6 +106,23 @@ function normalizeResult(value: HighAccuracyReceiptResult): HighAccuracyReceiptR
 export async function POST(request: NextRequest) {
   try {
     const apiKey = process.env.OPENAI_API_KEY;
+    if (!highAccuracyEnabled()) {
+      return NextResponse.json(
+        { available: false, message: "高精度読み取りは今は使えません。通常の読み取りと手入力は使えます。" },
+        { status: 503 }
+      );
+    }
+
+    const authHeader = request.headers.get("authorization") || "";
+    const idToken = authHeader.startsWith("Bearer ") ? authHeader.slice("Bearer ".length).trim() : "";
+    const uid = idToken ? await verifyFirebaseIdToken(idToken) : null;
+    if (!uid) {
+      return NextResponse.json(
+        { available: false, message: "ログインすると高精度で読み取れます。通常の読み取りと手入力は使えます。" },
+        { status: 401 }
+      );
+    }
+
     if (!apiKey) {
       return NextResponse.json(
         { available: false, message: "高精度読み取りは今は使えません。手入力できます。" },
@@ -119,6 +137,14 @@ export async function POST(request: NextRequest) {
     }
     if (file.size > MAX_IMAGE_SIZE) {
       return NextResponse.json({ available: false, message: "画像が大きすぎます。別の写真でお試しください。" }, { status: 413 });
+    }
+
+    const usage = await reserveHighAccuracyUsage(uid, idToken);
+    if (!usage.ok) {
+      return NextResponse.json(
+        { available: false, message: "今日の高精度読み取りはここまでです。手入力できます。" },
+        { status: 429 }
+      );
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());

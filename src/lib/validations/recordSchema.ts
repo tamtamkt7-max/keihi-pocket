@@ -10,6 +10,7 @@ export const recordSchema = z.object({
   categoryName: z.string().optional(),
   tagIds: z.array(z.string()),
   paymentMethod: z.enum(["cash", "credit", "bank", "e_money", "other"]),
+  usageType: z.enum(["spending", "business_expense"]).optional(),
   businessUsePercent: z.coerce.number().min(0).max(100),
   taxType: z.enum(["inclusive", "exclusive", "none"]),
   taxRate: z.coerce.number().nullable(),

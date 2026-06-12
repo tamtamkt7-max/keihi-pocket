@@ -12,6 +12,7 @@ import { saveCategory } from "@/lib/firestore/categories";
 import { uploadRecordImages } from "@/lib/storage/uploadRecordImages";
 import { extractReceiptData, extractReceiptDataHighAccuracy } from "@/lib/ocr/extractReceiptData";
 import { isDemoStorageQuotaError } from "@/lib/mock/localDb";
+import { auth } from "@/lib/firebase/client";
 import { getDefaultCategoriesForRecordType, getDefaultCategoryById } from "@/lib/categories/defaultCategories";
 import { HighAccuracyReceiptResult, isUsefulCategoryName } from "@/lib/receipt/highAccuracyReceipt";
 import { ImageUploader } from "./ImageUploader";
@@ -24,7 +25,7 @@ import { Card } from "@/components/ui/Card";
 
 type EntryMode = "camera" | "upload" | "manual" | "income";
 type FieldSource = "empty" | "auto-basic" | "auto-high" | "user-edited";
-type FieldKey = "transactionDate" | "amount" | "vendorName" | "categoryId" | "categoryName" | "paymentMethod" | "memo";
+type FieldKey = "transactionDate" | "amount" | "vendorName" | "categoryId" | "categoryName" | "paymentMethod" | "memo" | "usageType";
 
 type Props = {
   userId: string;
@@ -52,6 +53,7 @@ export function RecordForm({
   const router = useRouter();
   const consumedPending = useRef(false);
   const fieldSourcesRef = useRef<Record<string, FieldSource>>({});
+  const highAccuracyCacheRef = useRef<{ key: string; result: HighAccuracyReceiptResult } | null>(null);
   const [loading, setLoading] = useState(false);
   const [scanLoading, setScanLoading] = useState(false);
   const [highAccuracyLoading, setHighAccuracyLoading] = useState(false);
@@ -74,6 +76,7 @@ export function RecordForm({
     categoryName: initial?.categoryName || "",
     tagIds: initial?.tagIds || [],
     paymentMethod: initial?.paymentMethod || "cash",
+    usageType: initial?.usageType || "spending",
     businessUsePercent: initial?.businessUsePercent ?? 100,
     taxType: initial?.taxType || "inclusive",
     taxRate: initial?.taxRate ?? 10,
@@ -123,6 +126,10 @@ export function RecordForm({
     const current = fieldSourcesRef.current[key] || "empty";
     if (current === "user-edited") return;
     fieldSourcesRef.current = { ...fieldSourcesRef.current, [key]: source };
+  }
+
+  function getFileCacheKey(file: File) {
+    return `${file.name}:${file.size}:${file.lastModified}`;
   }
 
   function findCategoryBySuggestion(suggestion?: string | null) {
@@ -273,11 +280,22 @@ export function RecordForm({
   async function handleHighAccuracyRead() {
     const file = files[0];
     if (!file || highAccuracyLoading) return;
+    const cacheKey = getFileCacheKey(file);
+    if (highAccuracyCacheRef.current?.key === cacheKey) {
+      applyHighAccuracyResult(highAccuracyCacheRef.current.result);
+      return;
+    }
     setHighAccuracyLoading(true);
     setHighAccuracyMessage("");
     try {
-      const response = await extractReceiptDataHighAccuracy(file);
+      const token = await auth?.currentUser?.getIdToken();
+      if (!token) {
+        setHighAccuracyMessage("ログインすると高精度で読み取れます。通常の読み取りと手入力は使えます。");
+        return;
+      }
+      const response = await extractReceiptDataHighAccuracy(file, token);
       if (response.available && response.result) {
+        highAccuracyCacheRef.current = { key: cacheKey, result: response.result };
         applyHighAccuracyResult(response.result);
         return;
       }

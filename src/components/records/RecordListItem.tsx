@@ -4,6 +4,7 @@ import { RecordItem } from "@/types/record";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
 import { formatDate } from "@/lib/utils/formatDate";
 import { getRecordReview } from "@/lib/records/recordReview";
+import { getUsageTypeLabel } from "@/lib/records/usageType";
 
 export function RecordListItem({ item }: { item: RecordItem }) {
   const status = getRecordReview(item);
@@ -16,6 +17,7 @@ export function RecordListItem({ item }: { item: RecordItem }) {
         <strong>{item.vendorName || "名前なし"}</strong>
         <span className="subtitle">
           {formatDate(item.transactionDate)} ・ {item.recordType === "expense" ? "経費" : "売上"}
+          {item.recordType === "expense" ? ` ・ ${getUsageTypeLabel(item.usageType)}` : ""}
         </span>
         {showStatus ? (
           <div className="wrap">

@@ -4,6 +4,7 @@ import { Category } from "@/types/category";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
 import { getReportSummary } from "@/lib/calculations/reportSummary";
 import { getRecordStatusLabel } from "@/lib/records/recordReview";
+import { getUsageTypeLabel } from "@/lib/records/usageType";
 import { getCategoryName, getCategoryRows, getMonthlyRows, getReportPeriod, getReviewRows } from "@/lib/reports/reportTables";
 
 let fontReady: Promise<string> | null = null;
@@ -150,8 +151,9 @@ export async function exportRecordsPdf(records: RecordItem[], categories: Catego
   y = tableHeader(pdf, [
     { text: "日付", x: 14 },
     { text: "種別", x: 42 },
-    { text: "店名・相手先", x: 62 },
-    { text: "分類", x: 112 },
+    { text: "記録", x: 58 },
+    { text: "店名・相手先", x: 76 },
+    { text: "分類", x: 120 },
     { text: "金額", x: 166, align: "right" },
     { text: "状態", x: 190, align: "right" },
   ], y + 8);
@@ -159,8 +161,9 @@ export async function exportRecordsPdf(records: RecordItem[], categories: Catego
     y = ensurePage(pdf, y);
     addText(pdf, item.transactionDate || "-", 14, y);
     addText(pdf, item.recordType === "expense" ? "経費" : "売上", 42, y);
-    addText(pdf, truncate(item.vendorName || "名前なし", 14), 62, y);
-    addText(pdf, truncate(getCategoryName(categories, item.categoryId, item.categoryName), 12), 112, y);
+    addText(pdf, item.recordType === "expense" ? getUsageTypeLabel(item.usageType) : "-", 58, y);
+    addText(pdf, truncate(item.vendorName || "名前なし", 12), 76, y);
+    addText(pdf, truncate(getCategoryName(categories, item.categoryId, item.categoryName), 10), 120, y);
     addText(pdf, formatCurrency(item.amount), 166, y, { align: "right" });
     addText(pdf, getRecordStatusLabel(item), 190, y, { align: "right" });
     if (item.memo) {

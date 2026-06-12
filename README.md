@@ -127,11 +127,19 @@ GOOGLE_CLOUD_PRIVATE_KEY=
 使う場合は `.env.local` に次を設定します。
 
 ```env
+HIGH_ACCURACY_ENABLED=true
+HIGH_ACCURACY_DAILY_LIMIT=3
 OPENAI_API_KEY=
 OPENAI_RECEIPT_MODEL=
 ```
 
 `OPENAI_API_KEY` が未設定の場合でも、通常の読み取りと手入力はそのまま使えます。
+
+高精度読み取りはログインユーザー向けで、標準では 1 日 3 回までです。
+
+本番では必要に応じて `HIGH_ACCURACY_DAILY_LIMIT` を調整してください。
+
+一時的に止めたい場合は `HIGH_ACCURACY_ENABLED=false` にします。
 
 本番運用では、コストを抑えるために高精度読み取りの回数制限やログインユーザー限定の利用を検討してください。
 

@@ -12,6 +12,8 @@ type ReceiptAnalyzeResponse = {
 
 const MAX_CLIENT_IMAGE_EDGE = 1800;
 const CLIENT_COMPRESS_THRESHOLD = 2.5 * 1024 * 1024;
+const HIGH_ACCURACY_IMAGE_EDGE = 1400;
+const HIGH_ACCURACY_IMAGE_QUALITY = 0.8;
 
 function loadImageFromFile(file: File): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -68,6 +70,29 @@ export async function prepareReceiptImageForUpload(file: File) {
   return normalizeImageForUpload(file);
 }
 
+async function resizeImageForHighAccuracy(file: File) {
+  try {
+    const image = await loadImageFromFile(file);
+    const scale = Math.min(1, HIGH_ACCURACY_IMAGE_EDGE / Math.max(image.naturalWidth, image.naturalHeight));
+    const width = Math.max(1, Math.round(image.naturalWidth * scale));
+    const height = Math.max(1, Math.round(image.naturalHeight * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext("2d");
+    if (!context) return normalizeImageForUpload(file);
+    context.drawImage(image, 0, 0, width, height);
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", HIGH_ACCURACY_IMAGE_QUALITY));
+    if (!blob) return normalizeImageForUpload(file);
+    return new File([blob], file.name.replace(/\.(heic|heif|png|webp)$/i, ".jpg"), {
+      type: "image/jpeg",
+      lastModified: file.lastModified,
+    });
+  } catch {
+    return normalizeImageForUpload(file);
+  }
+}
+
 async function runFallback(file: File): Promise<ReceiptAnalyzeResponse> {
   const Tesseract = (await import("tesseract.js")).default;
   const result = await Tesseract.recognize(file, "jpn+eng", {
@@ -106,14 +131,17 @@ export async function extractReceiptData(file: File): Promise<ReceiptAnalyzeResp
   return runFallback(file);
 }
 
-export async function extractReceiptDataHighAccuracy(file: File): Promise<HighAccuracyReceiptResponse> {
-  const uploadFile = await normalizeImageForUpload(file);
+export async function extractReceiptDataHighAccuracy(file: File, idToken: string): Promise<HighAccuracyReceiptResponse> {
+  const uploadFile = await resizeImageForHighAccuracy(file);
   const formData = new FormData();
   formData.append("file", uploadFile);
 
   try {
     const response = await fetch("/api/receipt/ai-extract", {
       method: "POST",
+      headers: {
+        Authorization: `Bearer ${idToken}`,
+      },
       body: formData,
     });
     const data = (await response.json()) as HighAccuracyReceiptResponse;

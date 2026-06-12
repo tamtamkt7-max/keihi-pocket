@@ -20,6 +20,14 @@ service cloud.firestore {
           && resource.data.userId == userId
           && request.resource.data.userId == userId;
       }
+
+      match /usage/{usageId} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && request.resource.data.uid == userId
+          && request.resource.data.dateKey is string
+          && request.resource.data.count is int;
+      }
     }
 
     match /categories/{categoryId} {

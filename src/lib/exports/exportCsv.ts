@@ -2,6 +2,7 @@ import { RecordItem } from "@/types/record";
 import { Category } from "@/types/category";
 import { getRecordStatusLabel } from "@/lib/records/recordReview";
 import { getCategoryName, getCategoryRows, getMonthlyRows } from "@/lib/reports/reportTables";
+import { getUsageTypeLabel } from "@/lib/records/usageType";
 
 function csvEscape(value: string) {
   return `"${String(value).replace(/"/g, '""')}"`;
@@ -37,6 +38,7 @@ export function exportRecordsCsv(records: RecordItem[], categories: Category[]) 
   const header = [
     "日付",
     "種別",
+    "記録の種類",
     "店名・相手先",
     "分類",
     "金額",
@@ -52,6 +54,7 @@ export function exportRecordsCsv(records: RecordItem[], categories: Category[]) 
   const rows = records.map((item) => [
     item.transactionDate,
     item.recordType === "expense" ? "経費" : "売上",
+    item.recordType === "expense" ? getUsageTypeLabel(item.usageType) : "",
     item.vendorName,
     getCategoryName(categories, item.categoryId, item.categoryName),
     String(item.amount),

@@ -4,6 +4,7 @@ import { formatCurrency } from "@/lib/utils/formatCurrency";
 import { formatDate } from "@/lib/utils/formatDate";
 import { Badge } from "@/components/ui/Badge";
 import { getRecordReview } from "@/lib/records/recordReview";
+import { getUsageTypeLabel } from "@/lib/records/usageType";
 
 export function RecordDetail({
   item,
@@ -48,6 +49,12 @@ export function RecordDetail({
             <label>種類</label>
             <div>{item.recordType === "expense" ? "経費" : "売上"}</div>
           </div>
+          {item.recordType === "expense" ? (
+            <div className="field">
+              <label>記録の種類</label>
+              <div>{getUsageTypeLabel(item.usageType)}</div>
+            </div>
+          ) : null}
           {review.state !== "normal" ? (
             <div className="field">
               <label>状態</label>
