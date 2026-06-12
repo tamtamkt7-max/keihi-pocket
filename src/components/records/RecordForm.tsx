@@ -132,6 +132,10 @@ export function RecordForm({
     return `${file.name}:${file.size}:${file.lastModified}`;
   }
 
+  function isHighAccuracyResultUseful(result: HighAccuracyReceiptResult) {
+    return Boolean(result.date || typeof result.amount === "number" || result.vendor || result.categorySuggestion);
+  }
+
   function findCategoryBySuggestion(suggestion?: string | null) {
     const name = (suggestion || "").trim();
     if (!name) return undefined;
@@ -167,37 +171,38 @@ export function RecordForm({
     }));
   }
 
-  async function fillFromPhoto(file: File) {
-    setScanLoading(true);
-    setScanState("reading");
+  function applyBasicReceiptResult(result: Awaited<ReturnType<typeof extractReceiptData>>) {
+    setValues((prev) => {
+      const next = {
+        ...prev,
+        ocrRawText: result.rawText,
+        ocrExtracted: result.extracted,
+      };
+      if (canAutoReplace("transactionDate") && result.extracted.date) {
+        next.transactionDate = result.extracted.date;
+        markAutoSource("transactionDate", "auto-basic");
+      }
+      if (canAutoReplace("amount") && typeof result.extracted.amount === "number") {
+        next.amount = result.extracted.amount;
+        markAutoSource("amount", "auto-basic");
+      }
+      if (canAutoReplace("vendorName") && result.extracted.vendorName) {
+        next.vendorName = result.extracted.vendorName;
+        markAutoSource("vendorName", "auto-basic");
+      }
+      return next;
+    });
+    setScanState(result.extracted.date && result.extracted.amount && result.extracted.vendorName ? "filled" : "partial");
+  }
+
+  async function runBasicReceiptRead(file: File) {
     try {
       const result = await extractReceiptData(file);
-      setValues((prev) => {
-        const next = {
-          ...prev,
-          ocrRawText: result.rawText,
-          ocrExtracted: result.extracted,
-        };
-        if (canAutoReplace("transactionDate") && result.extracted.date) {
-          next.transactionDate = result.extracted.date;
-          markAutoSource("transactionDate", "auto-basic");
-        }
-        if (canAutoReplace("amount") && typeof result.extracted.amount === "number") {
-          next.amount = result.extracted.amount;
-          markAutoSource("amount", "auto-basic");
-        }
-        if (canAutoReplace("vendorName") && result.extracted.vendorName) {
-          next.vendorName = result.extracted.vendorName;
-          markAutoSource("vendorName", "auto-basic");
-        }
-        return next;
-      });
-      setScanState(result.extracted.date && result.extracted.amount && result.extracted.vendorName ? "filled" : "partial");
+      applyBasicReceiptResult(result);
+      return true;
     } catch (error) {
       console.error("receipt read failed", error);
-      setScanState("failed");
-    } finally {
-      setScanLoading(false);
+      return false;
     }
   }
 
@@ -273,33 +278,81 @@ export function RecordForm({
       }
       return next;
     });
-    setScanState("filled");
-    setHighAccuracyMessage(keptUserInput ? "読み取れたところだけ反映しました。入力済みのところはそのままです。" : "読み取れたところだけ反映しました。");
+    setScanState(result.date && result.amount && result.vendor ? "filled" : "partial");
+    setHighAccuracyMessage(keptUserInput ? "読み取れたところだけ入力しました。入力済みのところはそのままです。" : "読み取れたところだけ入力しました。内容を確認して保存してください。");
+  }
+
+  function getFriendlyReadMessage(message?: string) {
+    if (!message) return "うまく読み取れませんでした。手入力できます。";
+    if (message.includes("ログイン")) return "ログインすると、もう一度読み取れます。通常の入力はこのまま使えます。";
+    if (message.includes("今日")) return "今日の読み取り回数はここまでです。通常の入力はこのまま使えます。";
+    if (message.includes("使えません")) return "うまく読み取れませんでした。手入力できます。";
+    return message;
+  }
+
+  async function runHighAccuracyRead(file: File) {
+    const cacheKey = getFileCacheKey(file);
+    if (highAccuracyCacheRef.current?.key === cacheKey) {
+      applyHighAccuracyResult(highAccuracyCacheRef.current.result);
+      return { ok: true };
+    }
+
+    const token = await auth?.currentUser?.getIdToken();
+    if (!token) {
+      return {
+        ok: false,
+        message: "ログインすると、もう一度読み取れます。通常の入力はこのまま使えます。",
+      };
+    }
+
+    const response = await extractReceiptDataHighAccuracy(file, token);
+    if (response.available && response.result) {
+      if (!isHighAccuracyResultUseful(response.result)) {
+        return { ok: false, message: "うまく読み取れませんでした。手入力できます。" };
+      }
+      highAccuracyCacheRef.current = { key: cacheKey, result: response.result };
+      applyHighAccuracyResult(response.result);
+      return { ok: true };
+    }
+
+    return { ok: false, message: getFriendlyReadMessage(response.message) };
+  }
+
+  async function fillFromPhoto(file: File) {
+    setScanLoading(true);
+    setScanState("reading");
+    setHighAccuracyMessage("");
+    try {
+      const highAccuracyResult = await runHighAccuracyRead(file);
+      if (highAccuracyResult.ok) {
+        return;
+      }
+
+      const basicOk = await runBasicReceiptRead(file);
+      if (basicOk) {
+        if (highAccuracyResult.message?.includes("今日")) {
+          setHighAccuracyMessage(highAccuracyResult.message);
+        }
+        return;
+      }
+
+      setHighAccuracyMessage(highAccuracyResult.message || "うまく読み取れませんでした。手入力できます。");
+      setScanState("failed");
+    } finally {
+      setScanLoading(false);
+    }
   }
 
   async function handleHighAccuracyRead() {
     const file = files[0];
-    if (!file || highAccuracyLoading) return;
-    const cacheKey = getFileCacheKey(file);
-    if (highAccuracyCacheRef.current?.key === cacheKey) {
-      applyHighAccuracyResult(highAccuracyCacheRef.current.result);
-      return;
-    }
+    if (!file || highAccuracyLoading || scanLoading) return;
     setHighAccuracyLoading(true);
     setHighAccuracyMessage("");
     try {
-      const token = await auth?.currentUser?.getIdToken();
-      if (!token) {
-        setHighAccuracyMessage("ログインすると高精度で読み取れます。通常の読み取りと手入力は使えます。");
-        return;
+      const result = await runHighAccuracyRead(file);
+      if (!result.ok) {
+        setHighAccuracyMessage(result.message || "うまく読み取れませんでした。手入力できます。");
       }
-      const response = await extractReceiptDataHighAccuracy(file, token);
-      if (response.available && response.result) {
-        highAccuracyCacheRef.current = { key: cacheKey, result: response.result };
-        applyHighAccuracyResult(response.result);
-        return;
-      }
-      setHighAccuracyMessage(response.message || "うまく読み取れませんでした。手入力できます。");
     } finally {
       setHighAccuracyLoading(false);
     }
@@ -415,7 +468,7 @@ export function RecordForm({
   const readyChecks = requiredChecks.filter((item) => item.ready);
   const hasPhotoPreview = previews.length > 0;
   const isPhotoEntry = entryMode === "camera" || entryMode === "upload";
-  const shouldOfferHighAccuracy =
+  const shouldOfferRetryRead =
     isPhotoEntry &&
     files.length > 0 &&
     !scanLoading;
@@ -633,26 +686,6 @@ export function RecordForm({
             </Card>
           ) : null}
 
-          {shouldOfferHighAccuracy || highAccuracyMessage ? (
-            <Card className="list-card high-accuracy-card">
-              <div className="heading" style={{ marginBottom: 0 }}>
-                <div>
-                  <strong>店名や金額をもう一度読み取ります</strong>
-                  {highAccuracyMessage ? (
-                    <p className="subtitle" style={{ margin: "6px 0 0" }}>
-                      {highAccuracyMessage}
-                    </p>
-                  ) : null}
-                </div>
-                {shouldOfferHighAccuracy ? (
-                  <Button type="button" variant="secondary" disabled={highAccuracyLoading} onClick={handleHighAccuracyRead}>
-                    {highAccuracyLoading ? "読み取り中..." : "高精度で読み取る"}
-                  </Button>
-                ) : null}
-              </div>
-            </Card>
-          ) : null}
-
           <Card className="list-card">
             <div className="heading">
               <div>
@@ -670,15 +703,17 @@ export function RecordForm({
                 ))}
               </div>
             ) : null}
-            {shouldOfferHighAccuracy || highAccuracyMessage ? (
+            {shouldOfferRetryRead || highAccuracyMessage ? (
               <div className="inline-high-accuracy">
                 <div>
                   <strong>店名や金額をもう一度読み取る</strong>
-                  {highAccuracyMessage ? <p className="subtitle">{highAccuracyMessage}</p> : null}
+                  <p className="subtitle">
+                    {highAccuracyMessage || "うまく入らない時に使えます。内容を確認して保存してください。"}
+                  </p>
                 </div>
-                {shouldOfferHighAccuracy ? (
-                  <Button type="button" variant="secondary" disabled={highAccuracyLoading} onClick={handleHighAccuracyRead}>
-                    {highAccuracyLoading ? "読み取り中..." : "高精度で読み取る"}
+                {shouldOfferRetryRead ? (
+                  <Button type="button" variant="secondary" disabled={highAccuracyLoading || scanLoading} onClick={handleHighAccuracyRead}>
+                    {highAccuracyLoading ? "読み取り中..." : "もう一度読み取る"}
                   </Button>
                 ) : null}
               </div>

@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
     const apiKey = process.env.OPENAI_API_KEY;
     if (!highAccuracyEnabled()) {
       return NextResponse.json(
-        { available: false, message: "高精度読み取りは今は使えません。通常の読み取りと手入力は使えます。" },
+        { available: false, message: "今は自動読み取りを使えません。通常の入力はこのまま使えます。" },
         { status: 503 }
       );
     }
@@ -118,14 +118,14 @@ export async function POST(request: NextRequest) {
     const uid = idToken ? await verifyFirebaseIdToken(idToken) : null;
     if (!uid) {
       return NextResponse.json(
-        { available: false, message: "ログインすると高精度で読み取れます。通常の読み取りと手入力は使えます。" },
+        { available: false, message: "ログインすると、もう一度読み取れます。通常の入力はこのまま使えます。" },
         { status: 401 }
       );
     }
 
     if (!apiKey) {
       return NextResponse.json(
-        { available: false, message: "高精度読み取りは今は使えません。手入力できます。" },
+        { available: false, message: "今は自動読み取りを使えません。手入力できます。" },
         { status: 503 }
       );
     }
@@ -142,7 +142,7 @@ export async function POST(request: NextRequest) {
     const usage = await reserveHighAccuracyUsage(uid, idToken);
     if (!usage.ok) {
       return NextResponse.json(
-        { available: false, message: "今日の高精度読み取りはここまでです。手入力できます。" },
+        { available: false, message: "今日の読み取り回数はここまでです。手入力できます。" },
         { status: 429 }
       );
     }

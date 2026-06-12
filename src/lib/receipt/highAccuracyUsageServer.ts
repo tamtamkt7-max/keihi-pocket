@@ -29,8 +29,8 @@ export function highAccuracyEnabled() {
 }
 
 export function getHighAccuracyDailyLimit() {
-  const value = Number(process.env.HIGH_ACCURACY_DAILY_LIMIT || 3);
-  return Number.isFinite(value) && value > 0 ? Math.floor(value) : 3;
+  const value = Number(process.env.HIGH_ACCURACY_DAILY_LIMIT || 20);
+  return Number.isFinite(value) && value > 0 ? Math.floor(value) : 20;
 }
 
 export function getDateKey(date = new Date()) {
