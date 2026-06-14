@@ -14,7 +14,11 @@ function userVendorSuggestionsCollection(userId: string) {
 }
 
 function makeVendorSuggestionId(normalizedName: string) {
-  return `vendor_${normalizedName.replace(/[^a-z0-9ぁ-んァ-ヶ一-龠ー]/gi, "").slice(0, 48) || Date.now()}`;
+  const encoded = Array.from(normalizedName)
+    .map((char) => char.codePointAt(0)?.toString(36) || "")
+    .join("")
+    .slice(0, 60);
+  return `vendor_${encoded || Date.now()}`;
 }
 
 export async function getVendorSuggestions(userId: string): Promise<VendorSuggestion[]> {
