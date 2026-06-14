@@ -226,7 +226,11 @@ export async function POST(request: NextRequest) {
     const data = await response.json();
     const outputText = extractOutputText(data);
     const parsed = JSON.parse(outputText) as HighAccuracyReceiptResult;
-    return NextResponse.json({ available: true, result: normalizeResult(parsed) });
+    return NextResponse.json({
+      available: true,
+      result: normalizeResult(parsed),
+      dailyRemaining: Math.max(0, usage.freeLimit - usage.freeUsedCount + usage.rewardBonusRemaining),
+    });
   } catch (error) {
     console.warn("[receipt-ai-extract] failed", error);
     return NextResponse.json(

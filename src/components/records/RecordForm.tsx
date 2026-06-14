@@ -14,8 +14,11 @@ import { uploadRecordImages } from "@/lib/storage/uploadRecordImages";
 import { extractReceiptData, extractReceiptDataHighAccuracy } from "@/lib/ocr/extractReceiptData";
 import { isDemoStorageQuotaError } from "@/lib/mock/localDb";
 import { auth } from "@/lib/firebase/client";
+import { getVendorSuggestions, saveVendorSuggestion } from "@/lib/firestore/vendorSuggestions";
 import { getDefaultCategoriesForRecordType, getDefaultCategoryById } from "@/lib/categories/defaultCategories";
 import { HighAccuracyReceiptResult, isUsefulCategoryName } from "@/lib/receipt/highAccuracyReceipt";
+import { VendorSuggestion } from "@/types/vendorSuggestion";
+import { findVendorSuggestion, isUsableVendorName } from "@/lib/vendors/vendorSuggestionRules";
 import { ImageUploader } from "./ImageUploader";
 import { OcrCandidatePanel } from "./OcrCandidatePanel";
 import { RecordTypeTabs } from "./RecordTypeTabs";
@@ -66,13 +69,15 @@ export function RecordForm({
   const [highAccuracyLoading, setHighAccuracyLoading] = useState(false);
   const [highAccuracyMessage, setHighAccuracyMessage] = useState("");
   const [readLimitState, setReadLimitState] = useState<ReadLimitState | null>(null);
+  const [dailyRemaining, setDailyRemaining] = useState<number | null>(null);
+  const [vendorSuggestions, setVendorSuggestions] = useState<VendorSuggestion[]>([]);
   const [scanState, setScanState] = useState<"idle" | "reading" | "filled" | "partial" | "failed">("idle");
   const [files, setFiles] = useState<File[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
   const [entryMode, setEntryMode] = useState<EntryMode>(
     initial ? (initial.recordType === "income" ? "income" : "manual") : initialEntryMode
   );
-  const [started, setStarted] = useState(Boolean(initial) || initialEntryMode !== "camera");
+  const [started, setStarted] = useState(true);
   const [selectingPhotoMode, setSelectingPhotoMode] = useState(false);
   const [values, setValues] = useState({
     recordType: initial?.recordType || (initialEntryMode === "income" ? "income" : defaultType),
@@ -120,6 +125,20 @@ export function RecordForm({
     })();
   }, [initial]);
 
+  useEffect(() => {
+    let mounted = true;
+    getVendorSuggestions(userId)
+      .then((items) => {
+        if (mounted) setVendorSuggestions(items);
+      })
+      .catch((error) => {
+        console.warn("vendor suggestions load failed", error);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [userId]);
+
   function updateValue(key: string, value: any) {
     fieldSourcesRef.current = { ...fieldSourcesRef.current, [key]: "user-edited" };
     setValues((prev) => ({ ...prev, [key]: value }));
@@ -145,7 +164,9 @@ export function RecordForm({
   }
 
   function findCategoryBySuggestion(suggestion?: string | null) {
-    const name = (suggestion || "").trim();
+    const source = (suggestion || "").trim();
+    const mappedName = mapCategorySuggestion(source);
+    const name = mappedName || source;
     if (!name) return undefined;
     const normalize = (value: string) => value.replace(/\s+/g, "").toLowerCase();
     const candidates = [...categories, ...getDefaultCategoriesForRecordType(values.recordType)]
@@ -155,6 +176,26 @@ export function RecordForm({
       candidates.find((item) => normalize(item.name) === normalize(name)) ||
       candidates.find((item) => normalize(item.name).includes(normalize(name)) || normalize(name).includes(normalize(item.name)))
     );
+  }
+
+  function mapCategorySuggestion(value: string) {
+    const text = value.trim();
+    if (!text) return "";
+    if (/ガソリン|給油|レギュラー|軽油|灯油|燃料/i.test(text)) return "ガソリン代";
+    if (/駐車|パーキング|コインパーキング/i.test(text)) return "旅費交通費";
+    if (/交通|電車|バス|タクシー/i.test(text)) return "旅費交通費";
+    if (/飲食|カフェ|喫茶|レストラン|食堂|居酒屋/i.test(text)) return "飲食費";
+    if (/コンビニ|セブン|ローソン|ファミリーマート|ファミマ|ミニストップ/i.test(text)) return "コンビニ";
+    if (/Amazon|アマゾン|楽天|通販|ネットショップ/i.test(text)) return "消耗品費";
+    if (/備品|家電|家具|什器/i.test(text)) return "消耗品費";
+    return text;
+  }
+
+  function pickVendorName(value?: string | null) {
+    const name = (value || "").trim();
+    const suggestion = name ? findVendorSuggestion(name, vendorSuggestions) : null;
+    if (suggestion && (!isUsableVendorName(name) || suggestion.name !== name)) return suggestion.name;
+    return name;
   }
 
   function beginMode(mode: EntryMode) {
@@ -194,8 +235,9 @@ export function RecordForm({
         next.amount = result.extracted.amount;
         markAutoSource("amount", "auto-basic");
       }
-      if (canAutoReplace("vendorName") && result.extracted.vendorName) {
-        next.vendorName = result.extracted.vendorName;
+      const vendorName = pickVendorName(result.extracted.vendorName);
+      if (canAutoReplace("vendorName") && vendorName) {
+        next.vendorName = vendorName;
         markAutoSource("vendorName", "auto-basic");
       }
       return next;
@@ -215,7 +257,13 @@ export function RecordForm({
   }
 
   function applyHighAccuracyResult(result: HighAccuracyReceiptResult) {
-    const category = findCategoryBySuggestion(result.categorySuggestion);
+    const categorySource = [
+      result.categorySuggestion || "",
+      result.vendor || "",
+      ...result.items.map((item) => item.name || ""),
+    ].join(" ");
+    const category = findCategoryBySuggestion(categorySource);
+    const mappedCategoryName = mapCategorySuggestion(categorySource);
     let keptUserInput = false;
     setValues((prev) => {
       const next = { ...prev };
@@ -231,8 +279,10 @@ export function RecordForm({
       } else if (!canAutoReplace("amount") && typeof result.amount === "number") {
         keptUserInput = true;
       }
-      if (canAutoReplace("vendorName") && result.vendor && result.confidence.vendor >= 0.5) {
-        next.vendorName = result.vendor;
+      const vendorSuggestion = result.vendor ? findVendorSuggestion(result.vendor, vendorSuggestions) : null;
+      const vendorName = pickVendorName(result.vendor);
+      if (canAutoReplace("vendorName") && vendorName && (result.confidence.vendor >= 0.5 || Boolean(vendorSuggestion))) {
+        next.vendorName = vendorName;
         markAutoSource("vendorName", "auto-high");
       } else if (!canAutoReplace("vendorName") && result.vendor) {
         keptUserInput = true;
@@ -252,8 +302,8 @@ export function RecordForm({
           next.categoryName = category.name;
           markAutoSource("categoryId", "auto-high");
           markAutoSource("categoryName", "auto-high");
-        } else if (result.categorySuggestion) {
-          next.categoryName = result.categorySuggestion;
+        } else if (mappedCategoryName) {
+          next.categoryName = mappedCategoryName;
           markAutoSource("categoryName", "auto-high");
         }
       } else if ((!canAutoReplace("categoryName") || !canAutoReplace("categoryId")) && result.categorySuggestion) {
@@ -329,6 +379,7 @@ export function RecordForm({
         return { ok: false, message: "うまく読み取れませんでした。手入力できます。" };
       }
       setReadLimitState(null);
+      setDailyRemaining(typeof response.dailyRemaining === "number" ? response.dailyRemaining : null);
       highAccuracyCacheRef.current = { key: cacheKey, result: response.result };
       applyHighAccuracyResult(response.result);
       return { ok: true };
@@ -354,6 +405,8 @@ export function RecordForm({
       if (basicOk) {
         if (highAccuracyResult.message?.includes("今日")) {
           setHighAccuracyMessage(highAccuracyResult.message);
+        } else if (highAccuracyResult.message) {
+          setHighAccuracyMessage("かんたん読み取りで入力しています。入力欄は手で直せます。");
         }
         return;
       }
@@ -443,6 +496,14 @@ export function RecordForm({
         fiscalYearStartMonth,
       });
 
+      if (isUsableVendorName(valuesToSave.vendorName)) {
+        try {
+          await saveVendorSuggestion(userId, valuesToSave.vendorName);
+        } catch (vendorError) {
+          console.warn("vendor suggestion save failed", vendorError);
+        }
+      }
+
       if (files.length > 0) {
         try {
           const imageUrls = await uploadRecordImages({ userId, recordId: id, files });
@@ -495,52 +556,53 @@ export function RecordForm({
     isPhotoEntry &&
     files.length > 0 &&
     !scanLoading;
+  const todayRemainingLabel = typeof dailyRemaining === "number" ? `今日あと${dailyRemaining}回` : "";
 
   const topStatus = useMemo(() => {
     if (scanLoading || scanState === "reading") {
       return {
         tone: "active",
-        title: "レシートを読み取っています",
-        subtitle: "分かったところから入力します。先に入力しても大丈夫です。",
+        title: "しっかり読み取り中",
+        subtitle: todayRemainingLabel,
       };
     }
     if (scanState === "filled") {
       return {
         tone: "done",
-        title: "分かったところを入力しました",
-        subtitle: "内容を確認して、必要なところだけ直してください。",
+        title: "読み取れたところを入力しました",
+        subtitle: "内容を確認して保存してください。",
       };
     }
     if (scanState === "failed") {
       return {
-        tone: "warning",
-        title: "読み取れなかったところがあります",
-        subtitle: "写真は追加されています。分かる範囲で入力してください。",
+        tone: "plain",
+        title: "手入力できます",
+        subtitle: "内容を確認して保存してください。",
       };
     }
     if (scanState === "partial" || needsManualHelp) {
       return {
-        tone: "warning",
-        title: "足りないところだけ入力してください",
-        subtitle: "読み取れなかった項目は手入力できます。",
+        tone: "plain",
+        title: "内容を確認してください",
+        subtitle: "入力欄は手で直せます。",
       };
     }
     if (entryMode === "manual" || entryMode === "income") {
       return {
         tone: "plain",
-        title: "足りないところだけ入力してください",
-        subtitle: "入力した内容を保存すると、一覧と集計に反映されます。",
+        title: "内容をご確認ください",
+        subtitle: "",
       };
     }
     if (isPhotoEntry && hasPhotoPreview) {
       return {
         tone: "plain",
         title: "内容を確認してください",
-        subtitle: "必要なところだけ直して保存します。",
+        subtitle: "",
       };
     }
     return null;
-  }, [entryMode, hasPhotoPreview, isPhotoEntry, needsManualHelp, scanLoading, scanState]);
+  }, [entryMode, hasPhotoPreview, isPhotoEntry, needsManualHelp, scanLoading, scanState, todayRemainingLabel]);
 
   const entryHeading = useMemo(() => {
     if (entryMode === "income") {
@@ -559,7 +621,7 @@ export function RecordForm({
 
     return {
       title: "内容を確認",
-      subtitle: scanLoading ? "レシートを読み取っています" : "足りないところだけ直して保存します。",
+      subtitle: scanLoading ? "しっかり読み取り中" : "内容を確認して保存してください。",
     };
   }, [entryMode, hasPhotoPreview, isPhotoEntry, scanLoading]);
 
@@ -701,9 +763,9 @@ export function RecordForm({
           {needsManualHelp ? (
             <Card className="list-card soft-warning-card">
               <div>
-                <strong>足りないところだけ入力してください</strong>
+                <strong>内容をご確認ください</strong>
                 <p className="subtitle" style={{ margin: "6px 0 0" }}>
-                  保存後も編集できます。
+                  入力欄は手で直せます。
                 </p>
               </div>
             </Card>
@@ -757,6 +819,7 @@ export function RecordForm({
             <RecordBasicFields
               values={values}
               categories={categories}
+              vendorSuggestions={vendorSuggestions}
               categoriesLoading={categoriesLoading}
               onChange={updateValue}
             />

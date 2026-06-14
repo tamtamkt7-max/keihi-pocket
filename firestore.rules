@@ -28,6 +28,15 @@ service cloud.firestore {
           && request.resource.data.dateKey is string
           && request.resource.data.count is int;
       }
+
+      match /vendorSuggestions/{suggestionId} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && request.resource.data.userId == userId
+          && request.resource.data.name is string
+          && request.resource.data.normalizedName is string;
+        allow delete: if isOwner(userId);
+      }
     }
 
     match /categories/{categoryId} {

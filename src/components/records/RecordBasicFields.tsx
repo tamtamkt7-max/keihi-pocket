@@ -1,4 +1,5 @@
 import { Category } from "@/types/category";
+import { VendorSuggestion } from "@/types/vendorSuggestion";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { getDefaultCategoriesForRecordType, getDefaultCategoryDescription } from "@/lib/categories/defaultCategories";
@@ -6,6 +7,7 @@ import { getDefaultCategoriesForRecordType, getDefaultCategoryDescription } from
 interface Props {
   values: any;
   categories: Category[];
+  vendorSuggestions?: VendorSuggestion[];
   categoriesLoading?: boolean;
   onChange: (key: string, value: any) => void;
 }
@@ -15,7 +17,7 @@ function isVisibleForRecordType(category: Category, recordType: string) {
   return !type || type === recordType || type === "common" || type === "both" || type === "all";
 }
 
-export function RecordBasicFields({ values, categories, categoriesLoading = false, onChange }: Props) {
+export function RecordBasicFields({ values, categories, vendorSuggestions = [], categoriesLoading = false, onChange }: Props) {
   const activeCategories = categories
     .filter((item) => item.isActive !== false)
     .sort((a, b) => (a.sortOrder ?? 9999) - (b.sortOrder ?? 9999));
@@ -28,6 +30,9 @@ export function RecordBasicFields({ values, categories, categoriesLoading = fals
         ? activeCategories
         : fallbackCategories;
   const selectedCategory = [...activeCategories, ...fallbackCategories].find((item) => item.id === values.categoryId);
+  const shownVendorSuggestions = vendorSuggestions
+    .filter((item) => item.name && item.name !== values.vendorName)
+    .slice(0, 4);
 
   if (process.env.NODE_ENV !== "production") {
     console.info("category filter result", {
@@ -36,9 +41,6 @@ export function RecordBasicFields({ values, categories, categoriesLoading = fals
       recordType: values.recordType,
       categoryTypes: [...new Set(categories.map((item) => item.type || "none"))],
     });
-    console.info("categories count", categories.length);
-    console.info("visible categories count", visibleCategories.length);
-    console.info("record type", values.recordType);
   }
 
   return (
@@ -60,7 +62,28 @@ export function RecordBasicFields({ values, categories, categoriesLoading = fals
       </div>
       <div className="field">
         <label>{values.recordType === "income" ? "入金元" : "お店・相手先"}</label>
-        <Input value={values.vendorName} onChange={(event) => onChange("vendorName", event.target.value)} placeholder="例: コンビニ、取引先名" />
+        <Input
+          value={values.vendorName}
+          list="vendor-suggestions"
+          onChange={(event) => onChange("vendorName", event.target.value)}
+          placeholder="例: コンビニ、取引先名"
+        />
+        {vendorSuggestions.length > 0 ? (
+          <datalist id="vendor-suggestions">
+            {vendorSuggestions.slice(0, 12).map((item) => (
+              <option key={item.id} value={item.name} />
+            ))}
+          </datalist>
+        ) : null}
+        {shownVendorSuggestions.length > 0 ? (
+          <div className="readiness-list">
+            {shownVendorSuggestions.map((item) => (
+              <button key={item.id} type="button" className="readiness-pill" onClick={() => onChange("vendorName", item.name)}>
+                {item.name}
+              </button>
+            ))}
+          </div>
+        ) : null}
       </div>
       {values.recordType === "expense" ? (
         <div className="field">
@@ -98,8 +121,8 @@ export function RecordBasicFields({ values, categories, categoriesLoading = fals
           {categoriesLoading && visibleCategories.length === 0
             ? "分類を開いています..."
             : values.categoryId
-            ? selectedCategory?.description || getDefaultCategoryDescription(selectedCategory?.name || "")
-            : "迷ったときは、あとで選べます。未分類として集計に出ます。"}
+              ? selectedCategory?.description || getDefaultCategoryDescription(selectedCategory?.name || "")
+              : "あとから選べます。"}
         </small>
       </div>
     </div>

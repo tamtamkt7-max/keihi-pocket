@@ -73,7 +73,7 @@ export default function DashboardPage() {
               <span className="badge primary">はじめてでもかんたん</span>
               <h2>写真で登録して、あとから見返せます。</h2>
               <p className="subtitle">
-                レシートを撮るか写真を選ぶだけ。足りないところを確認して保存すると、一覧や集計にすぐ反映されます。
+                レシートを撮るか写真を選んで、内容を確認して保存できます。一覧や集計にもすぐ反映されます。
               </p>
             </div>
             <div className="home-intro-actions">

@@ -2,12 +2,14 @@ import { Category } from "@/types/category";
 import { RecordItem } from "@/types/record";
 import { RecurringTemplate } from "@/types/recurring";
 import { UserProfile } from "@/types/user";
+import { VendorSuggestion } from "@/types/vendorSuggestion";
 import { defaultCategories } from "@/lib/categories/defaultCategories";
 
 const KEYS = {
   profile: "keihi-pocket-demo-profile",
   records: "keihi-pocket-demo-records",
   categories: "keihi-pocket-demo-categories",
+  vendorSuggestions: "keihi-pocket-demo-vendor-suggestions",
   recurring: "keihi-pocket-demo-recurring",
 };
 
@@ -274,6 +276,21 @@ export function saveDemoCategory(category: Category) {
   const items = readJson<Category[]>(KEYS.categories, []);
   const next = items.some((item) => item.id === category.id) ? items.map((item) => (item.id === category.id ? category : item)) : [...items, category];
   writeJson(KEYS.categories, next);
+}
+
+export function getDemoVendorSuggestions(userId: string): VendorSuggestion[] {
+  return readJson<VendorSuggestion[]>(KEYS.vendorSuggestions, [])
+    .filter((item) => item.userId === userId)
+    .sort((a, b) => b.count - a.count || b.lastUsedAt.localeCompare(a.lastUsedAt))
+    .slice(0, 30);
+}
+
+export function saveDemoVendorSuggestion(suggestion: VendorSuggestion) {
+  const items = readJson<VendorSuggestion[]>(KEYS.vendorSuggestions, []);
+  const next = items.some((item) => item.id === suggestion.id)
+    ? items.map((item) => (item.id === suggestion.id ? suggestion : item))
+    : [...items, suggestion];
+  writeJson(KEYS.vendorSuggestions, next.slice(-200));
 }
 
 export function getDemoRecords(userId: string): RecordItem[] {

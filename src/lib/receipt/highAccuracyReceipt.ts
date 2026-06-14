@@ -32,6 +32,7 @@ export type HighAccuracyReceiptResponse = {
   rewardBonusReads?: number;
   rewardAdWatchedCount?: number;
   rewardAdDailyLimit?: number;
+  dailyRemaining?: number;
 };
 
 export function isUsefulCategoryName(value?: string | null) {

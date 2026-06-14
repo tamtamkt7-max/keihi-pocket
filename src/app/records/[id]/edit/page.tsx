@@ -32,7 +32,7 @@ export default function EditRecordPage() {
     <AuthGuard>
       <AppShell>
         <div className="page section">
-          <PageHeader title="編集" description="直したいところだけ整えます。" />
+          <PageHeader title="編集" description="内容をご確認ください。" />
           {loading ? <div className="card" style={{ padding: 24 }}>内容を開いています...</div> : null}
           {!loading && user && profile && item ? (
             <RecordForm
