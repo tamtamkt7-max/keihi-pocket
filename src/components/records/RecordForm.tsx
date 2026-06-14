@@ -89,7 +89,7 @@ export function RecordForm({
     categoryName: initial?.categoryName || "",
     tagIds: initial?.tagIds || [],
     paymentMethod: initial?.paymentMethod || "cash",
-    usageType: initial?.usageType || "spending",
+    usageType: initial ? initial.usageType || "spending" : "business_expense",
     businessUsePercent: initial?.businessUsePercent ?? 100,
     taxType: initial?.taxType || "inclusive",
     taxRate: initial?.taxRate ?? 10,

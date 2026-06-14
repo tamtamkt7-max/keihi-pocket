@@ -87,12 +87,12 @@ export function RecordBasicFields({ values, categories, vendorSuggestions = [], 
       </div>
       {values.recordType === "expense" ? (
         <div className="field">
-          <label>記録の種類</label>
-          <Select value={values.usageType || "spending"} onChange={(event) => onChange("usageType", event.target.value)}>
-            <option value="spending">支出</option>
-            <option value="business_expense">経費</option>
+          <label>記録の用途</label>
+          <Select value={values.usageType || "business_expense"} onChange={(event) => onChange("usageType", event.target.value)}>
+            <option value="business_expense">事業用の支払い</option>
+            <option value="spending">個人の支払い</option>
           </Select>
-          <small>{values.usageType === "business_expense" ? "仕事に使った支払い" : "ふつうの支払い"}</small>
+          <small>{values.usageType === "spending" ? "個人としての支払い" : "仕事に使った支払い"}</small>
         </div>
       ) : null}
       <div className="field">

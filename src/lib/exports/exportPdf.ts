@@ -151,7 +151,7 @@ export async function exportRecordsPdf(records: RecordItem[], categories: Catego
   y = tableHeader(pdf, [
     { text: "日付", x: 14 },
     { text: "種別", x: 42 },
-    { text: "記録", x: 58 },
+    { text: "用途", x: 58 },
     { text: "店名・相手先", x: 76 },
     { text: "分類", x: 120 },
     { text: "金額", x: 166, align: "right" },

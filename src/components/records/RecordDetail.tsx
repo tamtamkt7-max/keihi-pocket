@@ -51,7 +51,7 @@ export function RecordDetail({
           </div>
           {item.recordType === "expense" ? (
             <div className="field">
-              <label>記録の種類</label>
+              <label>記録の用途</label>
               <div>{getUsageTypeLabel(item.usageType)}</div>
             </div>
           ) : null}
