@@ -24,7 +24,7 @@ export function ReceiptCaptureButton({ children, className = "button primary", c
     setCapturing(true);
     try {
       await savePendingReceiptCapture(file);
-      router.push("/records/new?entry=camera&captured=1");
+      router.push(`/records/new?entry=camera&captured=${Date.now()}`);
     } finally {
       setCapturing(false);
     }

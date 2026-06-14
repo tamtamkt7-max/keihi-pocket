@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Camera, CheckCircle2, ImagePlus, Keyboard, LoaderCircle, WalletCards } from "lucide-react";
 import { Category } from "@/types/category";
 import { RecordItem } from "@/types/record";
-import { consumePendingReceiptCapture } from "@/lib/capture/pendingReceiptCapture";
+import { consumePendingReceiptCapture, listenPendingReceiptCapture } from "@/lib/capture/pendingReceiptCapture";
 import { recordSchema } from "@/lib/validations/recordSchema";
 import { saveRecord } from "@/lib/firestore/records";
 import { saveCategory } from "@/lib/firestore/categories";
@@ -112,17 +112,27 @@ export function RecordForm({
     return [...fromSaved, ...fromFiles];
   }, [files, values.imageUrls]);
 
+  async function loadPendingCapture() {
+    const pending = await consumePendingReceiptCapture();
+    if (!pending) return;
+    setStarted(true);
+    setSelectingPhotoMode(false);
+    setEntryMode("camera");
+    setFiles([pending]);
+    await fillFromPhoto(pending);
+  }
+
   useEffect(() => {
     if (initial || consumedPending.current) return;
     consumedPending.current = true;
-    (async () => {
-      const pending = await consumePendingReceiptCapture();
-      if (!pending) return;
-      setStarted(true);
-      setEntryMode("camera");
-      setFiles([pending]);
-      await fillFromPhoto(pending);
-    })();
+    void loadPendingCapture();
+  }, [initial]);
+
+  useEffect(() => {
+    if (initial) return;
+    return listenPendingReceiptCapture(() => {
+      void loadPendingCapture();
+    });
   }, [initial]);
 
   useEffect(() => {
@@ -406,7 +416,7 @@ export function RecordForm({
         if (highAccuracyResult.message?.includes("今日")) {
           setHighAccuracyMessage(highAccuracyResult.message);
         } else if (highAccuracyResult.message) {
-          setHighAccuracyMessage("かんたん読み取りで入力しています。入力欄は手で直せます。");
+          setHighAccuracyMessage("かんたん読み取りで入力しています。");
         }
         return;
       }
@@ -537,13 +547,6 @@ export function RecordForm({
     }
   }
 
-  const needsManualHelp =
-    !scanLoading &&
-    entryMode !== "manual" &&
-    entryMode !== "income" &&
-    started &&
-    (!values.transactionDate || !values.amount || !values.vendorName);
-
   const requiredChecks = [
     { label: "日付", ready: Boolean(values.transactionDate) },
     { label: "金額", ready: Number(values.amount) > 0 },
@@ -580,50 +583,15 @@ export function RecordForm({
         subtitle: "内容を確認して保存してください。",
       };
     }
-    if (scanState === "partial" || needsManualHelp) {
+    if (scanState === "partial" && isPhotoEntry && hasPhotoPreview) {
       return {
         tone: "plain",
-        title: "内容を確認してください",
-        subtitle: "入力欄は手で直せます。",
-      };
-    }
-    if (entryMode === "manual" || entryMode === "income") {
-      return {
-        tone: "plain",
-        title: "内容をご確認ください",
-        subtitle: "",
-      };
-    }
-    if (isPhotoEntry && hasPhotoPreview) {
-      return {
-        tone: "plain",
-        title: "内容を確認してください",
+        title: "読み取れた内容を確認してください",
         subtitle: "",
       };
     }
     return null;
-  }, [entryMode, hasPhotoPreview, isPhotoEntry, needsManualHelp, scanLoading, scanState, todayRemainingLabel]);
-
-  const entryHeading = useMemo(() => {
-    if (entryMode === "income") {
-      return {
-        title: "売上を入力",
-        subtitle: "入金日や金額を確認して保存します。",
-      };
-    }
-
-    if (isPhotoEntry && !hasPhotoPreview && !scanLoading) {
-      return {
-        title: "写真を追加",
-        subtitle: "レシートを撮るか、写真を選んでください。",
-      };
-    }
-
-    return {
-      title: "内容を確認",
-      subtitle: scanLoading ? "しっかり読み取り中" : "内容を確認して保存してください。",
-    };
-  }, [entryMode, hasPhotoPreview, isPhotoEntry, scanLoading]);
+  }, [hasPhotoPreview, isPhotoEntry, scanLoading, scanState, todayRemainingLabel]);
 
   useEffect(() => {
     if (process.env.NODE_ENV !== "production") {
@@ -693,26 +661,6 @@ export function RecordForm({
 
       {started ? (
         <>
-          <Card className="list-card entry-mode-card">
-            <div className="heading" style={{ marginBottom: 0 }}>
-              <div>
-                <h3>{entryHeading.title}</h3>
-                <p className="subtitle">{entryHeading.subtitle}</p>
-              </div>
-              {!initial ? (
-                <Button
-                  variant="ghost"
-                  onClick={() => {
-                    setStarted(false);
-                    setSelectingPhotoMode(false);
-                  }}
-                >
-                  戻る
-                </Button>
-              ) : null}
-            </div>
-          </Card>
-
           {topStatus ? (
             <Card className={`list-card reading-status-card ${topStatus.tone}`}>
               <div className="reading-status-row">
@@ -758,17 +706,6 @@ export function RecordForm({
                 if (field === "vendorName") updateValue("vendorName", String(value));
               }}
             />
-          ) : null}
-
-          {needsManualHelp ? (
-            <Card className="list-card soft-warning-card">
-              <div>
-                <strong>内容をご確認ください</strong>
-                <p className="subtitle" style={{ margin: "6px 0 0" }}>
-                  入力欄は手で直せます。
-                </p>
-              </div>
-            </Card>
           ) : null}
 
           <Card className="list-card">
