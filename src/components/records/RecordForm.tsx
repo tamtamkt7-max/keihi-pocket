@@ -1,6 +1,7 @@
 "use client";
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Camera, CheckCircle2, ImagePlus, Keyboard, LoaderCircle, WalletCards } from "lucide-react";
 import { Category } from "@/types/category";
@@ -26,6 +27,12 @@ import { Card } from "@/components/ui/Card";
 type EntryMode = "camera" | "upload" | "manual" | "income";
 type FieldSource = "empty" | "auto-basic" | "auto-high" | "user-edited";
 type FieldKey = "transactionDate" | "amount" | "vendorName" | "categoryId" | "categoryName" | "paymentMethod" | "memo" | "usageType";
+type ReadLimitState = {
+  rewardAdAvailable: boolean;
+  rewardBonusReads: number;
+  rewardAdWatchedCount: number;
+  rewardAdDailyLimit: number;
+};
 
 type Props = {
   userId: string;
@@ -58,6 +65,7 @@ export function RecordForm({
   const [scanLoading, setScanLoading] = useState(false);
   const [highAccuracyLoading, setHighAccuracyLoading] = useState(false);
   const [highAccuracyMessage, setHighAccuracyMessage] = useState("");
+  const [readLimitState, setReadLimitState] = useState<ReadLimitState | null>(null);
   const [scanState, setScanState] = useState<"idle" | "reading" | "filled" | "partial" | "failed">("idle");
   const [files, setFiles] = useState<File[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
@@ -285,9 +293,19 @@ export function RecordForm({
   function getFriendlyReadMessage(message?: string) {
     if (!message) return "うまく読み取れませんでした。手入力できます。";
     if (message.includes("ログイン")) return "ログインすると、もう一度読み取れます。通常の入力はこのまま使えます。";
-    if (message.includes("今日")) return "今日の読み取り回数はここまでです。通常の入力はこのまま使えます。";
+    if (message.includes("今日")) return "今日の無料読み取りを使い切りました。手入力できます。";
     if (message.includes("使えません")) return "うまく読み取れませんでした。手入力できます。";
     return message;
+  }
+
+  function getReadLimitState(response: { reason?: string; rewardAdAvailable?: boolean; rewardBonusReads?: number; rewardAdWatchedCount?: number; rewardAdDailyLimit?: number }) {
+    if (response.reason !== "daily_limit") return null;
+    return {
+      rewardAdAvailable: Boolean(response.rewardAdAvailable),
+      rewardBonusReads: response.rewardBonusReads || 3,
+      rewardAdWatchedCount: response.rewardAdWatchedCount || 0,
+      rewardAdDailyLimit: response.rewardAdDailyLimit || 3,
+    };
   }
 
   async function runHighAccuracyRead(file: File) {
@@ -310,18 +328,22 @@ export function RecordForm({
       if (!isHighAccuracyResultUseful(response.result)) {
         return { ok: false, message: "うまく読み取れませんでした。手入力できます。" };
       }
+      setReadLimitState(null);
       highAccuracyCacheRef.current = { key: cacheKey, result: response.result };
       applyHighAccuracyResult(response.result);
       return { ok: true };
     }
 
-    return { ok: false, message: getFriendlyReadMessage(response.message) };
+    const limitState = getReadLimitState(response);
+    if (limitState) setReadLimitState(limitState);
+    return { ok: false, message: getFriendlyReadMessage(response.message), limitState };
   }
 
   async function fillFromPhoto(file: File) {
     setScanLoading(true);
     setScanState("reading");
     setHighAccuracyMessage("");
+    setReadLimitState(null);
     try {
       const highAccuracyResult = await runHighAccuracyRead(file);
       if (highAccuracyResult.ok) {
@@ -348,6 +370,7 @@ export function RecordForm({
     if (!file || highAccuracyLoading || scanLoading) return;
     setHighAccuracyLoading(true);
     setHighAccuracyMessage("");
+    setReadLimitState(null);
     try {
       const result = await runHighAccuracyRead(file);
       if (!result.ok) {
@@ -706,12 +729,25 @@ export function RecordForm({
             {shouldOfferRetryRead || highAccuracyMessage ? (
               <div className="inline-high-accuracy">
                 <div>
-                  <strong>店名や金額をもう一度読み取る</strong>
+                  <strong>{readLimitState ? "今日の無料読み取りを使い切りました" : "店名や金額をもう一度読み取る"}</strong>
                   <p className="subtitle">
-                    {highAccuracyMessage || "うまく入らない時に使えます。内容を確認して保存してください。"}
+                    {readLimitState
+                      ? "手入力もできます。広告なしで使うこともできます。"
+                      : highAccuracyMessage || "うまく入らない時に使えます。内容を確認して保存してください。"}
                   </p>
                 </div>
-                {shouldOfferRetryRead ? (
+                {readLimitState ? (
+                  <div className="wrap">
+                    <Button type="button" variant="secondary" onClick={() => beginMode("manual")}>
+                      手入力する
+                    </Button>
+                    <Link href="/settings#plus-plan">
+                      <Button type="button" variant="secondary">
+                        広告なしで使う
+                      </Button>
+                    </Link>
+                  </div>
+                ) : shouldOfferRetryRead ? (
                   <Button type="button" variant="secondary" disabled={highAccuracyLoading || scanLoading} onClick={handleHighAccuracyRead}>
                     {highAccuracyLoading ? "読み取り中..." : "もう一度読み取る"}
                   </Button>

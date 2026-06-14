@@ -23,6 +23,7 @@ function getInitial(user: { displayName?: string | null; email?: string | null }
 export default function SettingsPage() {
   const { user, profile, setProfile, isDemoMode, isCloudMode } = useAuth();
   const [message, setMessage] = useState("");
+  const plan = profile?.plan === "plus" ? "plus" : "free";
 
   if (!profile) {
     return (
@@ -104,6 +105,39 @@ export default function SettingsPage() {
             <div className="support-panel">
               <strong>画像について</strong>
               <span>今は登録内容の保存を優先しています。写真は保存されないことがあります。</span>
+            </div>
+          </Card>
+
+          <Card id="plus-plan" className="list-card plus-plan-card">
+            <div className="heading">
+              <div>
+                <h3>プラス</h3>
+                <p className="subtitle">広告なしで、まとめ登録と申告前の整理をしやすくします。</p>
+              </div>
+              <span className="badge primary">{plan === "plus" ? "利用中" : "月額300円"}</span>
+            </div>
+            <div className="grid-2">
+              <div className="support-panel">
+                <strong>広告なし</strong>
+                <span>画面下部の広告を気にせず使えます。</span>
+              </div>
+              <div className="support-panel">
+                <strong>高精度読み取り 月100件</strong>
+                <span>レシートをまとめて登録しやすくします。</span>
+              </div>
+              <div className="support-panel">
+                <strong>CSV/PDF出力強化</strong>
+                <span>あとから見返しやすい形で整理します。</span>
+              </div>
+              <div className="support-panel">
+                <strong>申告前の整理</strong>
+                <span>分類や集計を確認しやすくします。</span>
+              </div>
+            </div>
+            <div className="row">
+              <Link href="/contact">
+                <Button variant="secondary">プラスについて問い合わせる</Button>
+              </Link>
             </div>
           </Card>
 
@@ -190,7 +224,7 @@ export default function SettingsPage() {
               <Link href="/privacy">プライバシーポリシー</Link>
               <Link href="/terms">利用規約</Link>
               <Link href="/contact">お問い合わせ</Link>
-              <span>広告なしプラン</span>
+              <a href="#plus-plan">広告なしプラン</a>
               <span>バージョン 0.1.0</span>
             </div>
           </Card>

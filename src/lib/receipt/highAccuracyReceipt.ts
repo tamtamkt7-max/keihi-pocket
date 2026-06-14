@@ -27,6 +27,11 @@ export type HighAccuracyReceiptResponse = {
   available: boolean;
   result?: HighAccuracyReceiptResult;
   message?: string;
+  reason?: "daily_limit";
+  rewardAdAvailable?: boolean;
+  rewardBonusReads?: number;
+  rewardAdWatchedCount?: number;
+  rewardAdDailyLimit?: number;
 };
 
 export function isUsefulCategoryName(value?: string | null) {

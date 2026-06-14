@@ -142,7 +142,15 @@ export async function POST(request: NextRequest) {
     const usage = await reserveHighAccuracyUsage(uid, idToken);
     if (!usage.ok) {
       return NextResponse.json(
-        { available: false, message: "今日の読み取り回数はここまでです。手入力できます。" },
+        {
+          available: false,
+          reason: "daily_limit",
+          message: "今日の無料読み取りを使い切りました。手入力できます。",
+          rewardAdAvailable: usage.rewardAdAvailable,
+          rewardBonusReads: usage.rewardBonusReads,
+          rewardAdWatchedCount: usage.rewardAdWatchedCount,
+          rewardAdDailyLimit: usage.rewardAdDailyLimit,
+        },
         { status: 429 }
       );
     }

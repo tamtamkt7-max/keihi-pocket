@@ -129,20 +129,31 @@ GOOGLE_CLOUD_PRIVATE_KEY=
 
 ```env
 HIGH_ACCURACY_ENABLED=true
-HIGH_ACCURACY_DAILY_LIMIT=20
+HIGH_ACCURACY_DAILY_LIMIT=3
+REWARD_ADS_ENABLED=false
+REWARD_AD_BONUS_READS=3
+REWARD_AD_DAILY_LIMIT=3
 OPENAI_API_KEY=
 OPENAI_RECEIPT_MODEL=
 ```
 
 `OPENAI_API_KEY` が未設定の場合でも、通常の読み取りと手入力はそのまま使えます。
 
-高精度読み取りはログインユーザー向けで、標準では 1 日 20 回までです。
+無料ユーザーの高精度読み取りは、標準では 1 日 3 回までです。
 
 本番では必要に応じて `HIGH_ACCURACY_DAILY_LIMIT` を調整してください。
 
 一時的に止めたい場合は `HIGH_ACCURACY_ENABLED=false` にします。
 
-本番運用では、写真撮影中・読み取り中・入力フォーム内には広告を出さず、ホーム、一覧、集計、保存後の詳細、設定など作業を邪魔しない画面で広告収益を補う方針です。
+動画広告で読み取り回数を回復する設計では、1 回の視聴で `REWARD_AD_BONUS_READS` 回を追加し、1 日の視聴回数は `REWARD_AD_DAILY_LIMIT` 回までにします。標準設定では、無料分 3 回に加えて、動画広告 3 回で最大 12 回まで使える想定です。
+
+動画広告ネットワーク連携は今後実装する場合があります。登録体験を邪魔する強制動画広告は出さず、ユーザーが選んだ時だけ回復導線へ進む方針です。
+
+下部広告は全頁共通で表示できます。ただし、写真撮影中、読み取り中、入力フォーム操作中は保存ボタンや入力欄と重ならない配置にします。
+
+プラスは月額 300 円、広告なし、高精度読み取り月 100 件、CSV/PDF 出力強化、申告前整理の強化を想定しています。決済連携は今後実装する場合があります。
+
+利用回数の Firestore rules を変更した場合は、反映に `firebase deploy --only firestore:rules --project keihi-pocket` が必要です。
 
 ## ログイン確認
 

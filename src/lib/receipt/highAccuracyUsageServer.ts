@@ -4,6 +4,10 @@ type UsageRecord = {
   uid: string;
   dateKey: string;
   count: number;
+  freeUsedCount: number;
+  rewardAdWatchedCount: number;
+  rewardBonusRemaining: number;
+  totalHighAccuracyUsedCount: number;
   createdAt: string;
   updatedAt: string;
 };
@@ -29,8 +33,22 @@ export function highAccuracyEnabled() {
 }
 
 export function getHighAccuracyDailyLimit() {
-  const value = Number(process.env.HIGH_ACCURACY_DAILY_LIMIT || 20);
-  return Number.isFinite(value) && value > 0 ? Math.floor(value) : 20;
+  const value = Number(process.env.HIGH_ACCURACY_DAILY_LIMIT || 3);
+  return Number.isFinite(value) && value > 0 ? Math.floor(value) : 3;
+}
+
+export function getRewardAdBonusReads() {
+  const value = Number(process.env.REWARD_AD_BONUS_READS || 3);
+  return Number.isFinite(value) && value > 0 ? Math.floor(value) : 3;
+}
+
+export function getRewardAdDailyLimit() {
+  const value = Number(process.env.REWARD_AD_DAILY_LIMIT || 3);
+  return Number.isFinite(value) && value > 0 ? Math.floor(value) : 3;
+}
+
+export function rewardAdsEnabled() {
+  return process.env.REWARD_ADS_ENABLED === "true";
 }
 
 export function getDateKey(date = new Date()) {
@@ -107,10 +125,21 @@ async function getFirestoreAccessToken(idToken: string) {
 function fromFirestore(data: any): UsageRecord | null {
   const fields = data?.fields;
   if (!fields) return null;
+  const legacyCount = Number(fields.count?.integerValue || fields.count?.doubleValue || 0);
+  const totalHighAccuracyUsedCount = Number(
+    fields.totalHighAccuracyUsedCount?.integerValue ||
+      fields.totalHighAccuracyUsedCount?.doubleValue ||
+      legacyCount
+  );
+  const freeUsedCount = Number(fields.freeUsedCount?.integerValue || fields.freeUsedCount?.doubleValue || legacyCount);
   return {
     uid: fields.uid?.stringValue || "",
     dateKey: fields.dateKey?.stringValue || "",
-    count: Number(fields.count?.integerValue || fields.count?.doubleValue || 0),
+    count: legacyCount,
+    freeUsedCount,
+    rewardAdWatchedCount: Number(fields.rewardAdWatchedCount?.integerValue || fields.rewardAdWatchedCount?.doubleValue || 0),
+    rewardBonusRemaining: Number(fields.rewardBonusRemaining?.integerValue || fields.rewardBonusRemaining?.doubleValue || 0),
+    totalHighAccuracyUsedCount,
     createdAt: fields.createdAt?.timestampValue || new Date().toISOString(),
     updatedAt: fields.updatedAt?.timestampValue || new Date().toISOString(),
   };
@@ -121,7 +150,11 @@ function toFirestoreFields(record: UsageRecord) {
     fields: {
       uid: { stringValue: record.uid },
       dateKey: { stringValue: record.dateKey },
-      count: { integerValue: String(record.count) },
+      count: { integerValue: String(record.totalHighAccuracyUsedCount) },
+      freeUsedCount: { integerValue: String(record.freeUsedCount) },
+      rewardAdWatchedCount: { integerValue: String(record.rewardAdWatchedCount) },
+      rewardBonusRemaining: { integerValue: String(record.rewardBonusRemaining) },
+      totalHighAccuracyUsedCount: { integerValue: String(record.totalHighAccuracyUsedCount) },
       createdAt: { timestampValue: record.createdAt },
       updatedAt: { timestampValue: record.updatedAt },
     },
@@ -153,24 +186,113 @@ async function saveUsage(record: UsageRecord, idToken: string) {
 
 export async function reserveHighAccuracyUsage(uid: string, idToken: string) {
   const dateKey = getDateKey();
-  const limit = getHighAccuracyDailyLimit();
+  const freeLimit = getHighAccuracyDailyLimit();
+  const rewardAdDailyLimit = getRewardAdDailyLimit();
+  const rewardBonusReads = getRewardAdBonusReads();
   const now = new Date().toISOString();
   const current = await fetchUsage(uid, dateKey, idToken);
-  const count = current?.count || 0;
+  const record: UsageRecord = {
+    uid,
+    dateKey,
+    count: current?.count || current?.totalHighAccuracyUsedCount || 0,
+    freeUsedCount: current?.freeUsedCount || 0,
+    rewardAdWatchedCount: current?.rewardAdWatchedCount || 0,
+    rewardBonusRemaining: current?.rewardBonusRemaining || 0,
+    totalHighAccuracyUsedCount: current?.totalHighAccuracyUsedCount || current?.count || 0,
+    createdAt: current?.createdAt || now,
+    updatedAt: now,
+  };
 
-  if (count >= limit) {
-    return { ok: false, count, limit, dateKey };
+  if (record.freeUsedCount < freeLimit) {
+    record.freeUsedCount += 1;
+    record.totalHighAccuracyUsedCount += 1;
+    await saveUsage(record, idToken);
+    return {
+      ok: true,
+      source: "free" as const,
+      dateKey,
+      freeUsedCount: record.freeUsedCount,
+      freeLimit,
+      rewardBonusRemaining: record.rewardBonusRemaining,
+      rewardAdWatchedCount: record.rewardAdWatchedCount,
+      rewardAdDailyLimit,
+      rewardBonusReads,
+      totalHighAccuracyUsedCount: record.totalHighAccuracyUsedCount,
+    };
   }
 
-  await saveUsage(
-    {
-      uid,
+  if (record.rewardBonusRemaining > 0) {
+    record.rewardBonusRemaining -= 1;
+    record.totalHighAccuracyUsedCount += 1;
+    await saveUsage(record, idToken);
+    return {
+      ok: true,
+      source: "reward" as const,
       dateKey,
-      count: count + 1,
-      createdAt: current?.createdAt || now,
-      updatedAt: now,
-    },
-    idToken
-  );
-  return { ok: true, count: count + 1, limit, dateKey };
+      freeUsedCount: record.freeUsedCount,
+      freeLimit,
+      rewardBonusRemaining: record.rewardBonusRemaining,
+      rewardAdWatchedCount: record.rewardAdWatchedCount,
+      rewardAdDailyLimit,
+      rewardBonusReads,
+      totalHighAccuracyUsedCount: record.totalHighAccuracyUsedCount,
+    };
+  }
+
+  return {
+    ok: false,
+    reason: "daily_limit" as const,
+    dateKey,
+    freeUsedCount: record.freeUsedCount,
+    freeLimit,
+    rewardBonusRemaining: record.rewardBonusRemaining,
+    rewardAdWatchedCount: record.rewardAdWatchedCount,
+    rewardAdDailyLimit,
+    rewardBonusReads,
+    rewardAdAvailable: rewardAdsEnabled() && record.rewardAdWatchedCount < rewardAdDailyLimit,
+    totalHighAccuracyUsedCount: record.totalHighAccuracyUsedCount,
+  };
+}
+
+export async function grantRewardAdBonus(uid: string, idToken: string) {
+  const dateKey = getDateKey();
+  const rewardAdDailyLimit = getRewardAdDailyLimit();
+  const rewardBonusReads = getRewardAdBonusReads();
+  const now = new Date().toISOString();
+  const current = await fetchUsage(uid, dateKey, idToken);
+  const record: UsageRecord = {
+    uid,
+    dateKey,
+    count: current?.count || current?.totalHighAccuracyUsedCount || 0,
+    freeUsedCount: current?.freeUsedCount || 0,
+    rewardAdWatchedCount: current?.rewardAdWatchedCount || 0,
+    rewardBonusRemaining: current?.rewardBonusRemaining || 0,
+    totalHighAccuracyUsedCount: current?.totalHighAccuracyUsedCount || current?.count || 0,
+    createdAt: current?.createdAt || now,
+    updatedAt: now,
+  };
+
+  if (!rewardAdsEnabled() || record.rewardAdWatchedCount >= rewardAdDailyLimit) {
+    return {
+      ok: false,
+      dateKey,
+      rewardAdWatchedCount: record.rewardAdWatchedCount,
+      rewardAdDailyLimit,
+      rewardBonusReads,
+      rewardBonusRemaining: record.rewardBonusRemaining,
+    };
+  }
+
+  record.rewardAdWatchedCount += 1;
+  record.rewardBonusRemaining += rewardBonusReads;
+  await saveUsage(record, idToken);
+
+  return {
+    ok: true,
+    dateKey,
+    rewardAdWatchedCount: record.rewardAdWatchedCount,
+    rewardAdDailyLimit,
+    rewardBonusReads,
+    rewardBonusRemaining: record.rewardBonusRemaining,
+  };
 }
