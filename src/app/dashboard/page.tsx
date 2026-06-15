@@ -15,7 +15,6 @@ import { FirstRunGuide } from "@/components/dashboard/FirstRunGuide";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { ReceiptCaptureButton } from "@/components/records/ReceiptCaptureButton";
-import { AdSlot } from "@/components/ads/AdSlot";
 import { RecordItem } from "@/types/record";
 
 export default function DashboardPage() {
@@ -140,7 +139,6 @@ export default function DashboardPage() {
 
           <RecentRecords items={recent} />
 
-          <AdSlot placement="home-bottom" />
         </div>
       </AppShell>
     </AuthGuard>

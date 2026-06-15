@@ -13,7 +13,6 @@ import { signOutUser } from "@/lib/firebase/auth";
 import { saveUserProfile } from "@/lib/firestore/users";
 import { useAuth } from "@/hooks/useAuth";
 import { settingsSchema } from "@/lib/validations/settingsSchema";
-import { AdSlot } from "@/components/ads/AdSlot";
 
 function getInitial(user: { displayName?: string | null; email?: string | null }) {
   const source = user.displayName || user.email || "?";
@@ -229,7 +228,6 @@ export default function SettingsPage() {
             </div>
           </Card>
 
-          <AdSlot placement="settings" />
         </div>
       </AppShell>
     </AuthGuard>

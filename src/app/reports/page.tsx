@@ -14,7 +14,6 @@ import { useRecords } from "@/hooks/useRecords";
 import { getReportSummary } from "@/lib/calculations/reportSummary";
 import { exportRecordsCsv, exportSummaryCsv } from "@/lib/exports/exportCsv";
 import { exportRecordsPdf } from "@/lib/exports/exportPdf";
-import { AdSlot } from "@/components/ads/AdSlot";
 import { getReportPeriod } from "@/lib/reports/reportTables";
 
 export default function ReportsPage() {
@@ -75,7 +74,6 @@ export default function ReportsPage() {
           <CategoryBreakdown records={filtered} categories={categories} />
           <ReviewList records={filtered} categories={categories} />
 
-          <AdSlot placement="reports-bottom" />
         </div>
       </AppShell>
     </AuthGuard>
