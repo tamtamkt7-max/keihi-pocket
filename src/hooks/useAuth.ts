@@ -60,10 +60,10 @@ export function useAuth() {
       if (!mounted) return;
       if (!auth || !firebaseEnabled) {
         setDemoState(setUser, setProfile, setMode);
-      } else if (!user) {
-        setDemoState(setUser, setProfile, setMode);
       }
-      endLoading();
+      if (!auth || !firebaseEnabled) {
+        endLoading();
+      }
     }, 2500);
 
     async function start() {

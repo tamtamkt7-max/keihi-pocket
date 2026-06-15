@@ -3,6 +3,7 @@
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { onAuthStateChanged, User } from "firebase/auth";
 import { Camera, CheckCircle2, ImagePlus, Keyboard, LoaderCircle, WalletCards } from "lucide-react";
 import { Category } from "@/types/category";
 import { RecordItem } from "@/types/record";
@@ -36,6 +37,11 @@ type ReadLimitState = {
   rewardAdWatchedCount: number;
   rewardAdDailyLimit: number;
 };
+type RewardAdWindow = Window & {
+  keihiPocketRewardAds?: {
+    show: () => boolean | Promise<boolean>;
+  };
+};
 
 type Props = {
   userId: string;
@@ -50,6 +56,32 @@ type Props = {
 const SHOW_RECEIPT_DEBUG =
   process.env.NEXT_PUBLIC_SHOW_RECEIPT_DEBUG === "true" ||
   process.env.NEXT_PUBLIC_SHOW_RECEIPT_DEBUG === "1";
+
+function waitForCurrentUser(timeoutMs = 3000) {
+  return new Promise<User | null>((resolve) => {
+    if (!auth) {
+      resolve(null);
+      return;
+    }
+    if (auth.currentUser) {
+      resolve(auth.currentUser);
+      return;
+    }
+    const authInstance = auth;
+
+    let settled = false;
+    let timer: number | undefined;
+    const finish = (user: User | null) => {
+      if (settled) return;
+      settled = true;
+      if (timer) window.clearTimeout(timer);
+      unsubscribe();
+      resolve(user);
+    };
+    const unsubscribe = onAuthStateChanged(authInstance, (user) => finish(user));
+    timer = window.setTimeout(() => finish(authInstance.currentUser), timeoutMs);
+  });
+}
 
 export function RecordForm({
   userId,
@@ -69,7 +101,7 @@ export function RecordForm({
   const [highAccuracyLoading, setHighAccuracyLoading] = useState(false);
   const [highAccuracyMessage, setHighAccuracyMessage] = useState("");
   const [readLimitState, setReadLimitState] = useState<ReadLimitState | null>(null);
-  const [dailyRemaining, setDailyRemaining] = useState<number | null>(null);
+  const [rewardAdReady, setRewardAdReady] = useState(false);
   const [vendorSuggestions, setVendorSuggestions] = useState<VendorSuggestion[]>([]);
   const [scanState, setScanState] = useState<"idle" | "reading" | "filled" | "partial" | "failed">("idle");
   const [files, setFiles] = useState<File[]>([]);
@@ -148,6 +180,15 @@ export function RecordForm({
       mounted = false;
     };
   }, [userId]);
+
+  useEffect(() => {
+    const checkRewardAdReady = () => {
+      setRewardAdReady(typeof (window as RewardAdWindow).keihiPocketRewardAds?.show === "function");
+    };
+    checkRewardAdReady();
+    const timer = window.setInterval(checkRewardAdReady, 1000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   function updateValue(key: string, value: any) {
     fieldSourcesRef.current = { ...fieldSourcesRef.current, [key]: "user-edited" };
@@ -352,7 +393,7 @@ export function RecordForm({
 
   function getFriendlyReadMessage(message?: string) {
     if (!message) return "うまく読み取れませんでした。手入力できます。";
-    if (message.includes("ログイン")) return "ログインすると、もう一度読み取れます。通常の入力はこのまま使えます。";
+    if (message.includes("ログイン")) return "通常の入力はこのまま使えます。";
     if (message.includes("今日")) return "今日の無料読み取りを使い切りました。手入力できます。";
     if (message.includes("使えません")) return "うまく読み取れませんでした。手入力できます。";
     return message;
@@ -375,11 +416,12 @@ export function RecordForm({
       return { ok: true };
     }
 
-    const token = await auth?.currentUser?.getIdToken();
+    const currentUser = await waitForCurrentUser();
+    const token = await currentUser?.getIdToken();
     if (!token) {
       return {
         ok: false,
-        message: "ログインすると、もう一度読み取れます。通常の入力はこのまま使えます。",
+        message: "通常の入力はこのまま使えます。",
       };
     }
 
@@ -389,7 +431,6 @@ export function RecordForm({
         return { ok: false, message: "うまく読み取れませんでした。手入力できます。" };
       }
       setReadLimitState(null);
-      setDailyRemaining(typeof response.dailyRemaining === "number" ? response.dailyRemaining : null);
       highAccuracyCacheRef.current = { key: cacheKey, result: response.result };
       applyHighAccuracyResult(response.result);
       return { ok: true };
@@ -439,6 +480,62 @@ export function RecordForm({
       if (!result.ok) {
         setHighAccuracyMessage(result.message || "うまく読み取れませんでした。手入力できます。");
       }
+    } finally {
+      setHighAccuracyLoading(false);
+    }
+  }
+
+  async function handleRewardAdRead() {
+    const rewardAd = (window as RewardAdWindow).keihiPocketRewardAds;
+    if (!rewardAd?.show || highAccuracyLoading || scanLoading) return;
+    setHighAccuracyLoading(true);
+    setHighAccuracyMessage("");
+    try {
+      const watched = await rewardAd.show();
+      if (!watched) {
+        setHighAccuracyMessage("手入力もできます。");
+        return;
+      }
+
+      const currentUser = await waitForCurrentUser();
+      const token = await currentUser?.getIdToken();
+      if (!token) {
+        setHighAccuracyMessage("通常の入力はこのまま使えます。");
+        return;
+      }
+
+      const response = await fetch("/api/receipt/reward-ad", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = (await response.json()) as {
+        available?: boolean;
+        rewardBonusRemaining?: number;
+        rewardBonusReads?: number;
+        rewardAdWatchedCount?: number;
+        rewardAdDailyLimit?: number;
+        message?: string;
+      };
+      if (!response.ok || !data.available) {
+        setHighAccuracyMessage(data.message || "手入力もできます。");
+        return;
+      }
+
+      setReadLimitState((prev) =>
+        prev
+          ? {
+              ...prev,
+              rewardBonusReads: data.rewardBonusReads || prev.rewardBonusReads,
+              rewardAdWatchedCount: data.rewardAdWatchedCount || prev.rewardAdWatchedCount,
+              rewardAdDailyLimit: data.rewardAdDailyLimit || prev.rewardAdDailyLimit,
+            }
+          : null
+      );
+      setHighAccuracyLoading(false);
+      await handleHighAccuracyRead();
+    } catch (error) {
+      console.warn("reward read failed", error);
+      setHighAccuracyMessage("手入力もできます。");
     } finally {
       setHighAccuracyLoading(false);
     }
@@ -555,18 +652,23 @@ export function RecordForm({
   const readyChecks = requiredChecks.filter((item) => item.ready);
   const hasPhotoPreview = previews.length > 0;
   const isPhotoEntry = entryMode === "camera" || entryMode === "upload";
+  const canUseRewardAd = Boolean(readLimitState?.rewardAdAvailable) && rewardAdReady;
   const shouldOfferRetryRead =
     isPhotoEntry &&
     files.length > 0 &&
-    !scanLoading;
-  const todayRemainingLabel = typeof dailyRemaining === "number" ? `今日あと${dailyRemaining}回` : "";
+    !scanLoading &&
+    (scanState === "partial" || scanState === "failed" || Boolean(readLimitState));
+  const showReadHelp =
+    Boolean(readLimitState) ||
+    shouldOfferRetryRead ||
+    Boolean(highAccuracyMessage && scanState !== "filled");
 
   const topStatus = useMemo(() => {
     if (scanLoading || scanState === "reading") {
       return {
         tone: "active",
-        title: "しっかり読み取り中",
-        subtitle: todayRemainingLabel,
+        title: "読み取り中",
+        subtitle: "",
       };
     }
     if (scanState === "filled") {
@@ -591,7 +693,7 @@ export function RecordForm({
       };
     }
     return null;
-  }, [hasPhotoPreview, isPhotoEntry, scanLoading, scanState, todayRemainingLabel]);
+  }, [hasPhotoPreview, isPhotoEntry, scanLoading, scanState]);
 
   useEffect(() => {
     if (process.env.NODE_ENV !== "production") {
@@ -695,19 +797,6 @@ export function RecordForm({
             />
           ) : null}
 
-          {scanLoading && entryMode !== "manual" && entryMode !== "income" ? (
-            <OcrCandidatePanel
-              loading={scanLoading}
-              extracted={values.ocrExtracted}
-              onApply={(field, value) => {
-                if (value === undefined) return;
-                if (field === "date") updateValue("transactionDate", String(value));
-                if (field === "amount") updateValue("amount", Number(value));
-                if (field === "vendorName") updateValue("vendorName", String(value));
-              }}
-            />
-          ) : null}
-
           <Card className="list-card">
             <div className="heading">
               <div>
@@ -725,18 +814,25 @@ export function RecordForm({
                 ))}
               </div>
             ) : null}
-            {shouldOfferRetryRead || highAccuracyMessage ? (
+            {showReadHelp ? (
               <div className="inline-high-accuracy">
                 <div>
                   <strong>{readLimitState ? "今日の無料読み取りを使い切りました" : "店名や金額をもう一度読み取る"}</strong>
                   <p className="subtitle">
                     {readLimitState
-                      ? "手入力もできます。広告なしで使うこともできます。"
+                      ? canUseRewardAd
+                        ? `動画を見ると、あと${readLimitState.rewardBonusReads}件読み取れます。手入力もできます。`
+                        : "手入力もできます。広告なしで使うこともできます。"
                       : highAccuracyMessage || "うまく入らない時に使えます。内容を確認して保存してください。"}
                   </p>
                 </div>
                 {readLimitState ? (
                   <div className="wrap">
+                    {canUseRewardAd ? (
+                      <Button type="button" variant="secondary" disabled={highAccuracyLoading || scanLoading} onClick={handleRewardAdRead}>
+                        {highAccuracyLoading ? "読み取り中..." : "動画を見て読み取る"}
+                      </Button>
+                    ) : null}
                     <Button type="button" variant="secondary" onClick={() => beginMode("manual")}>
                       手入力する
                     </Button>
