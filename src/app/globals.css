@@ -390,6 +390,18 @@ body { min-height: 100vh; }
   border: 1px solid var(--line);
   aspect-ratio: 1;
 }
+.preview-placeholder {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+  padding: 12px;
+}
 .preview-item button {
   position: absolute;
   top: 6px;

@@ -6,7 +6,7 @@ const EVENT_NAME = "keihi-pocket:pending-receipt-capture";
 const MAX_AGE_MS = 10 * 60 * 1000;
 
 type PendingCapture = {
-  file?: File;
+  file?: Blob;
   dataUrl?: string;
   name: string;
   type: string;
@@ -98,7 +98,10 @@ async function readFromSessionStorage() {
 
 function toFile(payload: PendingCapture) {
   if (Date.now() - payload.savedAt > MAX_AGE_MS) return null;
-  if (payload.file) return payload.file;
+  if (payload.file instanceof File) return payload.file;
+  if (payload.file instanceof Blob) {
+    return new File([payload.file], payload.name, { type: payload.type || payload.file.type || "image/jpeg" });
+  }
   if (!payload.dataUrl) return null;
 
   return fetch(payload.dataUrl)

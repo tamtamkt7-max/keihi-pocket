@@ -37,6 +37,10 @@ type ReadLimitState = {
   rewardAdWatchedCount: number;
   rewardAdDailyLimit: number;
 };
+type PreviewItem = {
+  url: string;
+  name: string;
+};
 type RewardAdWindow = Window & {
   keihiPocketRewardAds?: {
     show: () => boolean | Promise<boolean>;
@@ -105,6 +109,7 @@ export function RecordForm({
   const [vendorSuggestions, setVendorSuggestions] = useState<VendorSuggestion[]>([]);
   const [scanState, setScanState] = useState<"idle" | "reading" | "filled" | "partial" | "failed">("idle");
   const [files, setFiles] = useState<File[]>([]);
+  const [previews, setPreviews] = useState<PreviewItem[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
   const [entryMode, setEntryMode] = useState<EntryMode>(
     initial ? (initial.recordType === "income" ? "income" : "manual") : initialEntryMode
@@ -138,10 +143,36 @@ export function RecordForm({
     updatedAt: initial?.updatedAt || "",
   });
 
-  const previews = useMemo(() => {
-    const fromFiles = files.map((file) => ({ url: URL.createObjectURL(file), name: file.name }));
-    const fromSaved = values.imageUrls.map((url, index) => ({ url, name: `saved-${index}` }));
-    return [...fromSaved, ...fromFiles];
+  useEffect(() => {
+    let cancelled = false;
+    const objectUrls: string[] = [];
+
+    async function buildPreviews() {
+      const fromSaved = values.imageUrls.map((url, index) => ({ url, name: `saved-${index}` }));
+      const fromFiles = await Promise.all(
+        files.map(
+          (file) =>
+            new Promise<PreviewItem>((resolve) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve({ url: String(reader.result || ""), name: file.name || "receipt" });
+              reader.onerror = () => {
+                const url = URL.createObjectURL(file);
+                objectUrls.push(url);
+                resolve({ url, name: file.name || "receipt" });
+              };
+              reader.readAsDataURL(file);
+            })
+        )
+      );
+
+      if (!cancelled) setPreviews([...fromSaved, ...fromFiles].filter((item) => Boolean(item.url)));
+    }
+
+    void buildPreviews();
+    return () => {
+      cancelled = true;
+      objectUrls.forEach((url) => URL.revokeObjectURL(url));
+    };
   }, [files, values.imageUrls]);
 
   async function loadPendingCapture() {
@@ -545,7 +576,7 @@ export function RecordForm({
     if (!incoming?.length) return;
     const nextFiles = Array.from(incoming);
     setStarted(true);
-    setFiles((prev) => [...prev, ...nextFiles]);
+    setFiles((prev) => (entryMode === "camera" ? nextFiles.slice(0, 1) : [...prev, ...nextFiles]));
     await fillFromPhoto(nextFiles[0]);
   }
 

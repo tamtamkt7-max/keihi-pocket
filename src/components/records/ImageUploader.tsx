@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Camera, ImagePlus, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 
@@ -17,6 +18,7 @@ export function ImageUploader({
   const isCamera = mode === "camera";
   const Icon = isCamera ? Camera : ImagePlus;
   const hasPreview = previews.length > 0;
+  const [brokenImages, setBrokenImages] = useState<Record<string, boolean>>({});
 
   return (
     <div className="section">
@@ -24,7 +26,19 @@ export function ImageUploader({
         <div className="preview-grid">
           {previews.map((item, index) => (
             <div className="preview-item" key={`${item.url}-${index}`}>
-              <img src={item.url} alt="登録する写真" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              {brokenImages[item.url] ? (
+                <div className="preview-placeholder">
+                  <ImagePlus size={22} />
+                  <span>写真を表示できません</span>
+                </div>
+              ) : (
+                <img
+                  src={item.url}
+                  alt="登録する写真"
+                  onError={() => setBrokenImages((prev) => ({ ...prev, [item.url]: true }))}
+                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                />
+              )}
               <Button variant="danger" onClick={() => onRemove(index)} aria-label="写真を削除">
                 <X size={14} />
               </Button>
