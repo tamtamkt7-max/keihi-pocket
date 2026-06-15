@@ -42,7 +42,7 @@ export default function RecordDetailPage() {
                     <Button variant="secondary">編集する</Button>
                   </Link>
                 ) : null}
-                <Link href="/records/new">
+                <Link href="/records/new?entry=choose">
                   <Button variant="secondary">新しく登録</Button>
                 </Link>
                 <Button

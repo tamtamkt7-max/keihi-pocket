@@ -76,6 +76,7 @@ export default function Page() {
         <h2>公開ページ</h2>
         <p className="subtitle">サービスの利用前に確認できるページを用意しています。</p>
         <div className="settings-links">
+          <Link href="/guide">使い方</Link>
           <Link href="/privacy">プライバシーポリシー</Link>
           <Link href="/terms">利用規約</Link>
           <Link href="/contact">お問い合わせ</Link>

@@ -76,7 +76,7 @@ export default function DashboardPage() {
               </p>
             </div>
             <div className="home-intro-actions">
-              <Link href="/records/new" className="button primary">
+              <Link href="/records/new?entry=choose" className="button primary">
                 登録する
               </Link>
               <Link href="/reports" className="button secondary">

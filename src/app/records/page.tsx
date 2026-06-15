@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Camera } from "lucide-react";
+import { Plus } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { AuthGuard } from "@/components/auth/AuthGuard";
@@ -31,12 +31,9 @@ export default function RecordsPage() {
             description="日付や分類でしぼって見返せます。"
             actions={
               <div className="wrap">
-                <Link href="/records/new?entry=manual">
-                  <Button variant="secondary">手入力する</Button>
-                </Link>
-                <Link href="/records/new">
+                <Link href="/records/new?entry=choose">
                   <Button>
-                    <Camera size={18} />
+                    <Plus size={18} />
                     登録する
                   </Button>
                 </Link>

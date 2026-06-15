@@ -13,6 +13,7 @@ function NewRecordContent() {
   const { user, profile } = useAuth();
   const params = useSearchParams();
   const defaultType = useMemo(() => (params.get("type") === "income" ? "income" : "expense"), [params]);
+  const startWithChoices = useMemo(() => params.get("entry") === "choose", [params]);
   const initialEntryMode = useMemo(() => {
     const entry = params.get("entry");
     if (entry === "manual" || entry === "upload" || entry === "income") return entry;
@@ -28,12 +29,14 @@ function NewRecordContent() {
 
           {user && profile ? (
             <RecordForm
+              key={`${initialEntryMode}-${startWithChoices ? "choose" : "direct"}`}
               userId={user.uid}
               fiscalYearStartMonth={profile.fiscalYearStartMonth || 1}
               categories={categories}
               categoriesLoading={categoriesLoading}
               defaultType={defaultType}
               initialEntryMode={initialEntryMode}
+              startWithChoices={startWithChoices}
             />
           ) : null}
         </div>

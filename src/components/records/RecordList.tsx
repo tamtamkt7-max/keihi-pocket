@@ -10,7 +10,7 @@ export function RecordList({ items }: { items: RecordItem[] }) {
       {items.length === 0 ? (
         <div className="empty-state rich-empty-state">
           <p>まだ記録がありません。</p>
-          <Link href="/records/new" className="button primary">
+          <Link href="/records/new?entry=choose" className="button primary">
             <Camera size={18} />
             登録する
           </Link>

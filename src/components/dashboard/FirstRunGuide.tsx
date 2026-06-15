@@ -47,7 +47,7 @@ export function FirstRunGuide() {
           <strong>保存して集計</strong>
         </li>
       </ol>
-      <Link href="/records/new" className="button primary guide-action">
+      <Link href="/records/new?entry=choose" className="button primary guide-action">
         登録する
       </Link>
     </Card>

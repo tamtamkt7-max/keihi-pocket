@@ -4,7 +4,7 @@ import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged, User } from "firebase/auth";
-import { Camera, CheckCircle2, ImagePlus, Keyboard, LoaderCircle, WalletCards } from "lucide-react";
+import { Camera, CheckCircle2, FileUp, ImagePlus, Keyboard, LoaderCircle, WalletCards } from "lucide-react";
 import { Category } from "@/types/category";
 import { RecordItem } from "@/types/record";
 import { consumePendingReceiptCapture, listenPendingReceiptCapture } from "@/lib/capture/pendingReceiptCapture";
@@ -55,6 +55,7 @@ type Props = {
   initial?: RecordItem | null;
   defaultType?: "expense" | "income";
   initialEntryMode?: EntryMode;
+  startWithChoices?: boolean;
 };
 
 const SHOW_RECEIPT_DEBUG =
@@ -95,6 +96,7 @@ export function RecordForm({
   initial,
   defaultType = "expense",
   initialEntryMode = "camera",
+  startWithChoices = false,
 }: Props) {
   const router = useRouter();
   const consumedPending = useRef(false);
@@ -114,8 +116,7 @@ export function RecordForm({
   const [entryMode, setEntryMode] = useState<EntryMode>(
     initial ? (initial.recordType === "income" ? "income" : "manual") : initialEntryMode
   );
-  const [started, setStarted] = useState(true);
-  const [selectingPhotoMode, setSelectingPhotoMode] = useState(false);
+  const [started, setStarted] = useState(!startWithChoices);
   const [values, setValues] = useState({
     recordType: initial?.recordType || (initialEntryMode === "income" ? "income" : defaultType),
     documentType: initial?.documentType || "receipt",
@@ -179,7 +180,6 @@ export function RecordForm({
     const pending = await consumePendingReceiptCapture();
     if (!pending) return;
     setStarted(true);
-    setSelectingPhotoMode(false);
     setEntryMode("camera");
     setFiles([pending]);
     await fillFromPhoto(pending);
@@ -282,7 +282,6 @@ export function RecordForm({
 
   function beginMode(mode: EntryMode) {
     setStarted(true);
-    setSelectingPhotoMode(false);
     setEntryMode(mode);
 
     if (mode === "income") {
@@ -575,6 +574,12 @@ export function RecordForm({
   async function handleFiles(incoming: FileList | null) {
     if (!incoming?.length) return;
     const nextFiles = Array.from(incoming);
+    if (!nextFiles[0].type.startsWith("image/")) {
+      beginMode("manual");
+      setScanState("failed");
+      setHighAccuracyMessage("このファイルは読み取れませんでした。写真または画像を選んでください。手入力もできます。");
+      return;
+    }
     setStarted(true);
     setFiles((prev) => (entryMode === "camera" ? nextFiles.slice(0, 1) : [...prev, ...nextFiles]));
     await fillFromPhoto(nextFiles[0]);
@@ -593,6 +598,21 @@ export function RecordForm({
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
+    beginMode("upload");
+    setFiles([file]);
+    await fillFromPhoto(file);
+  }
+
+  async function handleFirstFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      beginMode("manual");
+      setScanState("failed");
+      setHighAccuracyMessage("このファイルは読み取れませんでした。写真または画像を選んでください。手入力もできます。");
+      return;
+    }
     beginMode("upload");
     setFiles([file]);
     await fillFromPhoto(file);
@@ -742,53 +762,60 @@ export function RecordForm({
         <section className="capture-start">
           <div className="capture-copy">
             <h2>登録方法を選ぶ</h2>
-            <p>まずは写真で登録するか、手入力するかを選べます。</p>
+            <p>レシートの写真、保存済み画像、ファイル、手入力から選べます。</p>
           </div>
 
-          {!selectingPhotoMode ? (
-            <>
-              <button type="button" className="action-card-button action-card-primary capture-choice-main" onClick={() => setSelectingPhotoMode(true)}>
-                <span className="action-card-icon">
-                  <Camera size={22} />
-                </span>
-                <div>
-                  <strong>写真で登録</strong>
-                  <p>レシートを撮るか、写真を選んで始めます。</p>
-                </div>
-              </button>
+          <div className="action-grid">
+            <label className="action-card-button action-card-primary">
+              <span className="action-card-icon">
+                <Camera size={22} />
+              </span>
+              <div>
+                <strong>カメラで撮る</strong>
+                <p>撮影後、そのまま内容確認へ進みます。</p>
+              </div>
+              <input hidden type="file" accept="image/*" capture="environment" onChange={handleFirstCamera} />
+            </label>
 
-              <div className="sub-actions">
-                <button type="button" onClick={() => beginMode("manual")}>
-                  <Keyboard size={18} />
-                  手入力
-                </button>
-                <button type="button" onClick={() => beginMode("income")}>
-                  <WalletCards size={18} />
-                  売上を登録
-                </button>
+            <label className="action-card-button">
+              <span className="action-card-icon">
+                <ImagePlus size={22} />
+              </span>
+              <div>
+                <strong>写真から選ぶ</strong>
+                <p>保存済みのレシート写真から登録します。</p>
               </div>
-            </>
-          ) : (
-            <>
-              <label className="capture-button capture-button-main">
-                <Camera size={30} />
-                <span>レシートを撮る</span>
-                <small>そのまま内容の確認に進めます</small>
-                <input hidden type="file" accept="image/*" capture="environment" onChange={handleFirstCamera} />
-              </label>
-              <div className="sub-actions">
-                <label className="sub-action-file">
-                  <ImagePlus size={18} />
-                  写真を選ぶ
-                  <input hidden type="file" accept="image/*" onChange={handleFirstUpload} />
-                </label>
-                <button type="button" onClick={() => setSelectingPhotoMode(false)}>
-                  <Keyboard size={18} />
-                  戻る
-                </button>
+              <input hidden type="file" accept="image/*" onChange={handleFirstUpload} />
+            </label>
+
+            <label className="action-card-button">
+              <span className="action-card-icon">
+                <FileUp size={22} />
+              </span>
+              <div>
+                <strong>ファイルから選ぶ</strong>
+                <p>画像ファイルを選べます。読み取れない時は手入力できます。</p>
               </div>
-            </>
-          )}
+              <input hidden type="file" accept="image/*,application/pdf" onChange={handleFirstFile} />
+            </label>
+
+            <button type="button" className="action-card-button" onClick={() => beginMode("manual")}>
+              <span className="action-card-icon">
+                <Keyboard size={22} />
+              </span>
+              <div>
+                <strong>手入力</strong>
+                <p>写真なしで日付や金額を入力します。</p>
+              </div>
+            </button>
+          </div>
+
+          <div className="sub-actions">
+            <button type="button" onClick={() => beginMode("income")}>
+              <WalletCards size={18} />
+              売上を登録
+            </button>
+          </div>
         </section>
       ) : null}
 

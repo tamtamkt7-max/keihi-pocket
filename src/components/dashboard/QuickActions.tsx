@@ -5,7 +5,7 @@ import { ReceiptCaptureButton } from "@/components/records/ReceiptCaptureButton"
 
 const actions = [
   {
-    href: "/records/new?entry=upload",
+    href: "/records/new?entry=choose",
     label: "写真を選ぶ",
     description: "保存済みの写真から登録します。",
     icon: ImagePlus,
