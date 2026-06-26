@@ -1,4 +1,4 @@
-import "./globals.css";
+﻿import "./globals.css";
 import type { Metadata, Viewport } from "next";
 import { AdSenseScript } from "@/components/ads/AdSenseScript";
 
@@ -7,7 +7,7 @@ export const metadata: Metadata = {
     default: "経費ポケット",
     template: "%s | 経費ポケット",
   },
-  description: "レシートを撮って、経費と売上をまとめて管理。",
+  description: "レシートを撮って、経費と売上をまとめて管理。日々の支払いを簡単に記録・整理するためのツールです。",
   applicationName: "経費ポケット",
   manifest: "/manifest.webmanifest",
   icons: {
@@ -18,6 +18,9 @@ export const metadata: Metadata = {
     capable: true,
     title: "経費ポケット",
     statusBarStyle: "default",
+  },
+  other: {
+    "google-adsense-account": "ca-pub-5461809032953003",
   },
 };
 
