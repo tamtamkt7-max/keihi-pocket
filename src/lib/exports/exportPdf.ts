@@ -166,10 +166,6 @@ export async function exportRecordsPdf(records: RecordItem[], categories: Catego
     addText(pdf, truncate(getCategoryName(categories, item.categoryId, item.categoryName), 10), 120, y);
     addText(pdf, formatCurrency(item.amount), 166, y, { align: "right" });
     addText(pdf, getRecordStatusLabel(item), 190, y, { align: "right" });
-    if (item.memo) {
-      y += 5;
-      addText(pdf, `メモ: ${truncate(item.memo, 42)}`, 62, y);
-    }
     y += 7;
   });
 
