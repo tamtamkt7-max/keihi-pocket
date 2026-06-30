@@ -117,6 +117,9 @@ export function RecordForm({
     initial ? (initial.recordType === "income" ? "income" : "manual") : initialEntryMode
   );
   const [started, setStarted] = useState(!startWithChoices);
+  const [showMockAd, setShowMockAd] = useState(false);
+  const [mockAdSeconds, setMockAdSeconds] = useState(5);
+  const mockAdResolveRef = useRef<((value: boolean) => void) | null>(null);
   const [values, setValues] = useState({
     recordType: initial?.recordType || (initialEntryMode === "income" ? "income" : defaultType),
     documentType: initial?.documentType || "receipt",
@@ -220,6 +223,40 @@ export function RecordForm({
     const timer = window.setInterval(checkRewardAdReady, 1000);
     return () => window.clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const win = window as any;
+      if (!win.keihiPocketRewardAds) {
+        win.keihiPocketRewardAds = {
+          show: () => {
+            return new Promise<boolean>((resolve) => {
+              mockAdResolveRef.current = resolve;
+              setMockAdSeconds(5);
+              setShowMockAd(true);
+            });
+          }
+        };
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!showMockAd) return;
+    if (mockAdSeconds <= 0) return;
+    const timer = window.setTimeout(() => {
+      setMockAdSeconds((prev) => prev - 1);
+    }, 1000);
+    return () => window.clearTimeout(timer);
+  }, [showMockAd, mockAdSeconds]);
+
+  function handleCloseMockAd(success: boolean) {
+    setShowMockAd(false);
+    if (mockAdResolveRef.current) {
+      mockAdResolveRef.current(success);
+      mockAdResolveRef.current = null;
+    }
+  }
 
   function updateValue(key: string, value: any) {
     fieldSourcesRef.current = { ...fieldSourcesRef.current, [key]: "user-edited" };
@@ -988,6 +1025,53 @@ export function RecordForm({
           ) : null}
         </>
       ) : null}
+
+      {showMockAd && (
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: "rgba(0,0,0,0.5)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 1000,
+          padding: 16
+        }}>
+          <div className="card" style={{ padding: 24, maxWidth: 420, width: "100%", textAlign: "center", background: "var(--surface)" }}>
+            <h3 style={{ marginTop: 0 }}>動画広告を再生中</h3>
+            <p className="subtitle">
+              {mockAdSeconds > 0
+                ? `特典の準備中... あと ${mockAdSeconds} 秒`
+                : "広告の再生が完了しました！"}
+            </p>
+            <div style={{
+              background: "linear-gradient(135deg, #117865 0%, #0f766e 100%)",
+              color: "white",
+              padding: "40px 16px",
+              borderRadius: 12,
+              marginBottom: 20,
+              boxShadow: "inset 0 0 10px rgba(0,0,0,0.2)"
+            }}>
+              <h4 style={{ margin: "0 0 8px", fontSize: 20 }}>経費ポケット</h4>
+              <p style={{ margin: 0, fontSize: 13, opacity: 0.9 }}>レシートを撮るだけでかんたん自動入力！無料配布中</p>
+            </div>
+            <div className="row" style={{ justifyContent: "center", gap: 12 }}>
+              {mockAdSeconds > 0 ? (
+                <Button variant="secondary" onClick={() => handleCloseMockAd(false)}>
+                  キャンセル
+                </Button>
+              ) : (
+                <Button variant="primary" onClick={() => handleCloseMockAd(true)}>
+                  特典を受け取る
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

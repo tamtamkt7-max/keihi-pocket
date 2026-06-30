@@ -1,17 +1,17 @@
 :root {
-  --bg: #f6f7f4;
+  --bg: #f3f6f4;
   --surface: #ffffff;
-  --surface-muted: #eef2ef;
-  --text: #111827;
-  --muted: #6b7280;
-  --line: #e5e7eb;
-  --primary: #117865;
-  --primary-soft: #e4f4ef;
-  --danger: #dc2626;
-  --success: #0f766e;
-  --warning: #a16207;
-  --radius: 8px;
-  --shadow: 0 8px 28px rgba(16, 24, 40, 0.08);
+  --surface-muted: #e9f0ec;
+  --text: #0f172a;
+  --muted: #475569;
+  --line: #cbd5e1;
+  --primary: #0d9488;
+  --primary-soft: #ccfbf1;
+  --danger: #ef4444;
+  --success: #0d9488;
+  --warning: #f59e0b;
+  --radius: 16px;
+  --shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.02);
   --max-width: 1120px;
 }
 
@@ -21,11 +21,17 @@ html, body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 a { color: inherit; text-decoration: none; }
 button, input, select, textarea { font: inherit; }
 img { max-width: 100%; display: block; }
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display), var(--font-sans), sans-serif;
+  letter-spacing: -0.02em;
+}
 
 body { min-height: 100vh; }
 

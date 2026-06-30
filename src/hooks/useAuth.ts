@@ -8,6 +8,7 @@ import { UserProfile } from "@/types/user";
 import { firebaseEnabled } from "@/lib/runtime/appMode";
 import { checkRedirectResultOnce } from "@/lib/firebase/auth";
 import { clearDemoSession, getDemoProfile, hasDemoSession, isDemoUserId } from "@/lib/mock/localDb";
+import { migrateDemoDataToCloud } from "@/lib/firestore/migration";
 
 type DemoUser = Pick<User, "uid" | "displayName" | "email" | "photoURL">;
 type AuthMode = "cloud" | "demo" | "signed-out";
@@ -87,6 +88,11 @@ export function useAuth() {
         if (!mounted) return;
 
         if (current) {
+          try {
+            await migrateDemoDataToCloud(current.uid);
+          } catch (migrateError) {
+            console.error("Failed to migrate demo data to cloud:", migrateError);
+          }
           clearDemoSession();
           setUser(current);
           try {

@@ -11,12 +11,27 @@ export function RecordFilterBar({
     recordType: string;
     status: string;
     categoryId: string;
+    year: string;
   };
   categories: Category[];
   onChange: (key: string, value: string) => void;
 }) {
   return (
     <div className="grid-2">
+      <div className="field">
+        <label>年度</label>
+        <Select value={filters.year} onChange={(e) => onChange("year", e.target.value)}>
+          <option value="">すべて</option>
+          {Array.from({ length: 5 }).map((_, index) => {
+            const year = new Date().getFullYear() - index;
+            return (
+              <option key={year} value={String(year)}>
+                {year}年
+              </option>
+            );
+          })}
+        </Select>
+      </div>
       <div className="field">
         <label>月</label>
         <Select value={filters.month} onChange={(e) => onChange("month", e.target.value)}>

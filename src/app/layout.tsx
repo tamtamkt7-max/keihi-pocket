@@ -1,6 +1,17 @@
 ﻿import "./globals.css";
 import type { Metadata, Viewport } from "next";
 import { AdSenseScript } from "@/components/ads/AdSenseScript";
+import { Inter, Outfit } from "next/font/google";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-sans",
+});
+
+const outfit = Outfit({
+  subsets: ["latin"],
+  variable: "--font-display",
+});
 
 export const metadata: Metadata = {
   title: {
@@ -30,7 +41,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="ja">
+    <html lang="ja" className={`${inter.variable} ${outfit.variable}`}>
       <body>
         <AdSenseScript />
         {children}

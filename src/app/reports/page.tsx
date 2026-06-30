@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { AuthGuard } from "@/components/auth/AuthGuard";
@@ -18,9 +19,16 @@ import { getReportPeriod } from "@/lib/reports/reportTables";
 
 export default function ReportsPage() {
   const { user } = useAuth();
-  const { filtered, error } = useRecords(user?.uid);
+  const { items, filtered, filters, setFilters, error } = useRecords(user?.uid);
   const { items: categories } = useCategories(user?.uid);
   const summary = getReportSummary(filtered);
+
+  const years = useMemo(() => {
+    const list = items.map((item) => item.fiscalYear).filter((y): y is number => typeof y === "number");
+    const current = new Date().getFullYear();
+    list.push(current);
+    return Array.from(new Set(list)).sort((a, b) => b - a);
+  }, [items]);
 
   return (
     <AuthGuard>
@@ -43,6 +51,31 @@ export default function ReportsPage() {
               </div>
             }
           />
+
+          <div className="card list-card" style={{ padding: "16px 20px", marginBottom: 8 }}>
+            <div className="row" style={{ alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+              <div className="field" style={{ margin: 0, display: "flex", flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <label htmlFor="report-year" style={{ margin: 0, whiteSpace: "nowrap", fontWeight: 700 }}>集計対象年:</label>
+                <select
+                  id="report-year"
+                  className="select"
+                  style={{ width: "auto", minHeight: 38, padding: "4px 12px", border: "1px solid var(--line)" }}
+                  value={filters.year}
+                  onChange={(e) => setFilters((prev) => ({ ...prev, year: e.target.value }))}
+                >
+                  <option value="">全期間</option>
+                  {years.map((y) => (
+                    <option key={y} value={String(y)}>
+                      {y}年分
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <span className="subtitle" style={{ fontSize: 13 }}>
+                ※ 確定申告の対象期間に絞って、集計データやCSV・PDFを出力できます。
+              </span>
+            </div>
+          </div>
 
           <div className="support-panel">
             <strong>対象期間</strong>

@@ -11,6 +11,7 @@ interface FilterState {
   recordType: string;
   status: string;
   categoryId: string;
+  year: string;
 }
 
 export function useRecords(userId?: string) {
@@ -23,6 +24,7 @@ export function useRecords(userId?: string) {
     recordType: "",
     status: "",
     categoryId: "",
+    year: new Date().getFullYear().toString(),
   });
 
   async function refresh() {
@@ -57,6 +59,7 @@ export function useRecords(userId?: string) {
       if (filters.status === "needs_review" && getRecordReview(item).state !== "needs_review") return false;
       if (filters.status && filters.status !== "needs_review" && item.status !== filters.status) return false;
       if (filters.categoryId && item.categoryId !== filters.categoryId) return false;
+      if (filters.year && String(item.fiscalYear) !== filters.year) return false;
       return true;
     });
   }, [items, filters]);
