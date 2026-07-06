@@ -13,7 +13,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing userId" }, { status: 400 });
     }
 
-    if (!process.env.STRIPE_SECRET_KEY || !process.env.NEXT_PUBLIC_STRIPE_PLUS_PRICE_ID) {
+    const priceId = process.env.STRIPE_PRICE_ID || process.env.NEXT_PUBLIC_STRIPE_PLUS_PRICE_ID;
+
+    if (!process.env.STRIPE_SECRET_KEY || !priceId) {
       return NextResponse.json({ error: "Stripe is not configured" }, { status: 500 });
     }
 
@@ -25,7 +27,7 @@ export async function POST(req: Request) {
       payment_method_types: ["card"],
       line_items: [
         {
-          price: process.env.NEXT_PUBLIC_STRIPE_PLUS_PRICE_ID,
+          price: priceId,
           quantity: 1,
         },
       ],
