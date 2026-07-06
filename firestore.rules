@@ -59,5 +59,9 @@ service cloud.firestore {
       allow update: if isOwner(resource.data.userId)
         && isOwner(request.resource.data.userId);
     }
+
+    match /contacts/{contactId} {
+      allow create: if true;
+    }
   }
 }

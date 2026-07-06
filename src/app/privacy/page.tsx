@@ -1,23 +1,76 @@
+import Link from "next/link";
+import { ShieldCheck } from "lucide-react";
+
 export default function PrivacyPolicy() {
   return (
-    <div className="max-w-2xl mx-auto p-6 space-y-6">
-      <h1 className="text-2xl font-bold">プライバシーポリシー</h1>
-      <p>当サイト（経費ポケット）は、ユーザーの個人情報を適切に取り扱い、保護することに努めます。</p>
-      
-      <section className="space-y-2">
-        <h2 className="text-xl font-semibold">1. 取得する情報</h2>
-        <p>当サイトでは、Googleアカウントによるログイン情報、およびアップロードされたレシート画像データを取得します。これらのデータは、経費の自動読み取りおよびユーザーのデータ管理の目的のみに使用されます。</p>
+    <main className="page section public-page">
+      <section className="card list-card public-hero">
+        <span className="badge primary">ポリシー</span>
+        <div className="heading">
+          <div>
+            <h1>プライバシーポリシー</h1>
+            <p className="subtitle">
+              当サイト（経費ポケット）における個人情報の取り扱いおよび保護方針について説明します。
+            </p>
+          </div>
+          <ShieldCheck size={30} />
+        </div>
+        <div className="row">
+          <Link href="/" className="button primary">
+            トップページへ
+          </Link>
+          <Link href="/terms" className="button secondary">
+            利用規約
+          </Link>
+        </div>
       </section>
 
-      <section className="space-y-2">
-        <h2 className="text-xl font-semibold">2. 広告の配信について</h2>
-        <p>当サイトは、Google AdSenseなどの第三者配信の広告サービスを利用する場合があります。広告配信事業者は、ユーザーの興味に応じた広告を表示するためにCookieを使用することがあります。</p>
+      <section className="card list-card">
+        <h2>1. 個人情報の取得と利用目的</h2>
+        <p className="subtitle" style={{ lineHeight: 1.7 }}>
+          当サイトでは、Googleアカウントによる認証ログイン情報（お名前、メールアドレス、アイコン画像等）、およびユーザーがアップロードしたレシート画像データを取得します。
+        </p>
+        <p className="subtitle" style={{ lineHeight: 1.7, marginTop: 8 }}>
+          これらの情報は、レシートからの金額や日付の自動読み取り機能、およびユーザーご自身が記録を管理・整理するための機能（本アプリのコア機能）の提供・運営のためにのみ利用し、それ以外の目的には使用いたしません。
+        </p>
       </section>
 
-      <section className="space-y-2">
-        <h2 className="text-xl font-semibold">3. データの保存と削除</h2>
-        <p>アップロードされた画像やデータは、ユーザー自身でいつでも削除・変更が可能です。当サイトは、ユーザーの許可なく第三者にデータを提供することはありません。</p>
+      <section className="card list-card">
+        <h2>2. 広告の配信について</h2>
+        <p className="subtitle" style={{ lineHeight: 1.7 }}>
+          当サイトでは、第三者配信の広告サービス「Google AdSense」を利用しています。
+        </p>
+        <p className="subtitle" style={{ lineHeight: 1.7, marginTop: 8 }}>
+          広告配信事業者は、ユーザーの過去のアクセス情報に基づいて適切な広告を表示するために、Cookie（クッキー）を使用することがあります。
+        </p>
+        <p className="subtitle" style={{ lineHeight: 1.7, marginTop: 8 }}>
+          ユーザーは、Googleの<a href="https://adssettings.google.com/authenticated" target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary)", textDecoration: "underline" }}>広告設定</a>にて、パーソナライズ広告を無効にすることができます。また、<a href="https://www.aboutads.info/choices" target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary)", textDecoration: "underline" }}>www.aboutads.info</a> にアクセスすることで、第三者配信事業者がパーソナライズ広告の掲載に使用する Cookie を無効にすることもできます。
+        </p>
       </section>
-    </div>
+
+      <section className="card list-card">
+        <h2>3. データの保存と安全管理</h2>
+        <p className="subtitle" style={{ lineHeight: 1.7 }}>
+          アップロードされたレシート画像や記録データは、安全なクラウドデータベースに保管され、ユーザーご自身でいつでも自由に変更・削除が可能です。
+          当サイトは、法令に基づく場合を除き、ユーザーの同意なく第三者に個人情報やアップロードされたデータを提供することはありません。
+        </p>
+      </section>
+
+      <section className="card list-card">
+        <h2>4. プライバシーポリシーの改定</h2>
+        <p className="subtitle" style={{ lineHeight: 1.7 }}>
+          当サイトは、本プライバシーポリシーの内容を適宜見直し、その改善に努めます。改定された最新のプライバシーポリシーは、常に本ページにて開示されます。
+        </p>
+      </section>
+
+      <section className="card list-card">
+        <h2>その他の公開情報</h2>
+        <div className="settings-links">
+          <Link href="/terms">利用規約</Link>
+          <Link href="/about">運営者情報</Link>
+          <Link href="/guide">使い方</Link>
+        </div>
+      </section>
+    </main>
   );
 }

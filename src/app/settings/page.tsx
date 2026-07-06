@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { AuthGuard } from "@/components/auth/AuthGuard";
@@ -13,6 +13,8 @@ import { signOutUser } from "@/lib/firebase/auth";
 import { saveUserProfile } from "@/lib/firestore/users";
 import { useAuth } from "@/hooks/useAuth";
 import { settingsSchema } from "@/lib/validations/settingsSchema";
+import { Modal } from "@/components/ui/Modal";
+import { UserProfile } from "@/types/user";
 
 function getInitial(user: { displayName?: string | null; email?: string | null }) {
   const source = user.displayName || user.email || "?";
@@ -22,7 +24,49 @@ function getInitial(user: { displayName?: string | null; email?: string | null }
 export default function SettingsPage() {
   const { user, profile, setProfile, isDemoMode, isCloudMode } = useAuth();
   const [message, setMessage] = useState("");
+  const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
+  const [isUpdatingPlan, setIsUpdatingPlan] = useState(false);
+  const [stripeMessage, setStripeMessage] = useState("");
   const plan = profile?.plan === "plus" ? "plus" : "free";
+
+  const isStripeConfigured = Boolean(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
+  const useStripe = isCloudMode && isStripeConfigured;
+
+  // Stripe遷移結果の検出
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const searchParams = new URLSearchParams(window.location.search);
+      const stripeStatus = searchParams.get("stripe");
+      
+      if (stripeStatus === "success") {
+        setStripeMessage("決済手続きが完了しました。プラスプランをご利用いただけます！");
+        
+        const updatePlanToPlus = async () => {
+          if (profile && profile.plan !== "plus") {
+            const updatedProfile: UserProfile = {
+              ...profile,
+              plan: "plus",
+              subscriptionStatus: "active",
+            };
+            try {
+              await saveUserProfile(updatedProfile);
+              setProfile(updatedProfile);
+            } catch (err) {
+              console.error("Failed to update profile locally after Stripe success:", err);
+            }
+          }
+        };
+        updatePlanToPlus();
+        
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, newUrl);
+      } else if (stripeStatus === "cancel") {
+        setStripeMessage("決済がキャンセルされました。");
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, newUrl);
+      }
+    }
+  }, [profile, setProfile]);
 
   if (!profile) {
     return (
@@ -107,14 +151,53 @@ export default function SettingsPage() {
             </div>
           </Card>
 
+          {stripeMessage && (
+            <div style={{
+              padding: "12px 16px",
+              backgroundColor: stripeMessage.includes("完了") ? "#e6fffa" : "#fff5f5",
+              color: stripeMessage.includes("完了") ? "#006d5b" : "#e53e3e",
+              border: stripeMessage.includes("完了") ? "1px solid #b2f5ea" : "1px solid #fed7d7",
+              borderRadius: 8,
+              marginBottom: 16,
+              fontSize: "0.95rem",
+              fontWeight: "bold",
+            }}>
+              {stripeMessage}
+            </div>
+          )}
+
           <Card id="plus-plan" className="list-card plus-plan-card">
             <div className="heading">
               <div>
-                <h3>プラス</h3>
+                <h3>プラスプラン</h3>
                 <p className="subtitle">広告なしで、まとめ登録と申告前の整理をしやすくします。</p>
               </div>
-              <span className="badge primary">{plan === "plus" ? "利用中" : "月額300円"}</span>
             </div>
+
+            <div style={{ 
+              display: "flex", 
+              justifyContent: "space-between", 
+              alignItems: "center", 
+              padding: "12px 16px", 
+              backgroundColor: "var(--bg-muted, #f3f4f6)", 
+              borderRadius: 8, 
+              marginBottom: 16 
+            }}>
+              <div>
+                <span className="subtitle" style={{ fontSize: "0.85rem", color: "var(--text-muted)", display: "block" }}>現在の状態</span>
+                <strong style={{ fontSize: "1.1rem" }}>
+                  現在のプラン：{plan === "plus" ? "プラス" : "フリー"}
+                </strong>
+              </div>
+              <div>
+                {plan === "plus" ? (
+                  <span className="badge success">利用中</span>
+                ) : (
+                  <span className="badge primary">未加入 (月額300円)</span>
+                )}
+              </div>
+            </div>
+
             <div className="grid-2">
               <div className="support-panel">
                 <strong>広告なし</strong>
@@ -134,11 +217,116 @@ export default function SettingsPage() {
               </div>
             </div>
             <div className="row">
-              <Link href="/contact">
-                <Button variant="secondary">プラスについて問い合わせる</Button>
-              </Link>
+              <Button 
+                variant={plan === "plus" ? "secondary" : "primary"}
+                onClick={() => setIsPlanModalOpen(true)}
+              >
+                {plan === "plus" ? "フリープランに戻す" : "プラスプランに変更する"}
+              </Button>
             </div>
           </Card>
+
+          <Modal
+            open={isPlanModalOpen}
+            title={plan === "plus" ? "プランの変更（解約）" : "プランの変更（プラス）"}
+            onClose={() => !isUpdatingPlan && setIsPlanModalOpen(false)}
+          >
+            <div style={{ padding: "8px 0" }}>
+              {plan === "plus" ? (
+                <>
+                  <p style={{ lineHeight: 1.6, marginBottom: 20 }}>
+                    {useStripe 
+                      ? "プラスプランの管理画面に移動します。Stripeのマイページへ遷移します。よろしいですか？"
+                      : "広告なしプラスプランを終了し、フリープランへ変更します。よろしいですか？"}
+                  </p>
+                  <p className="subtitle" style={{ fontSize: "0.85rem", marginBottom: 24 }}>
+                    ※変更後は、月100件以上のOCR読み取りや高度な出力機能に制限が適用され、広告が表示されるようになります。
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p style={{ lineHeight: 1.6, marginBottom: 20 }}>
+                    {useStripe
+                      ? "広告なしプラスプラン（月額300円）の決済画面へ移動します。よろしいですか？"
+                      : "広告なしプラスプラン（月額300円）に変更します。よろしいですか？"}
+                  </p>
+                  <p className="subtitle" style={{ fontSize: "0.85rem", marginBottom: 24 }}>
+                    {useStripe 
+                      ? "※Stripeの決済ページヘ遷移します。"
+                      : "※デモ環境のため、実際の決済や請求は発生しません。"}
+                  </p>
+                </>
+              )}
+
+              <div style={{ display: "flex", gap: 12, justifyContent: "flex-end", marginTop: 16 }}>
+                <Button
+                  variant="ghost"
+                  onClick={() => setIsPlanModalOpen(false)}
+                  disabled={isUpdatingPlan}
+                >
+                  キャンセル
+                </Button>
+                <Button
+                  onClick={async () => {
+                    setIsUpdatingPlan(true);
+                    try {
+                      if (useStripe && profile) {
+                        if (plan === "free") {
+                          const res = await fetch("/api/stripe/checkout", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ userId: profile.id, email: profile.email }),
+                          });
+                          const data = await res.json();
+                          if (data.url) {
+                            window.location.href = data.url;
+                            return;
+                          } else {
+                            throw new Error(data.error || "Checkout session creation failed");
+                          }
+                        } else {
+                          if (profile.stripeCustomerId) {
+                            const res = await fetch("/api/stripe/portal", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ stripeCustomerId: profile.stripeCustomerId }),
+                            });
+                            const data = await res.json();
+                            if (data.url) {
+                              window.location.href = data.url;
+                              return;
+                            } else {
+                              throw new Error(data.error || "Billing portal session creation failed");
+                            }
+                          }
+                        }
+                      }
+
+                      // Stripe設定が無い、またはデモフォールバックの場合
+                      const nextPlan: "free" | "plus" = plan === "plus" ? "free" : "plus";
+                      const nextStatus: "active" | "inactive" = nextPlan === "plus" ? "active" : "inactive";
+                      const updatedProfile: UserProfile = {
+                        ...profile,
+                        plan: nextPlan,
+                        subscriptionStatus: nextStatus,
+                      };
+                      await saveUserProfile(updatedProfile);
+                      setProfile(updatedProfile);
+                      setIsPlanModalOpen(false);
+                    } catch (error: any) {
+                      console.error("Failed to update plan:", error);
+                      alert(error.message || "プランの変更に失敗しました。通信状態を確認してください。");
+                    } finally {
+                      setIsUpdatingPlan(false);
+                    }
+                  }}
+                  disabled={isUpdatingPlan}
+                >
+                  {isUpdatingPlan ? "処理中..." : "変更する"}
+                </Button>
+              </div>
+            </div>
+          </Modal>
 
           <Card className="list-card">
             <div className="heading">
