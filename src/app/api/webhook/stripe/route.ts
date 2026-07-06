@@ -4,7 +4,7 @@ import { getApps, initializeApp, cert } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "sk_test_dummy", {
-  apiVersion: "2025-02-27-preview" as any,
+  apiVersion: "2022-11-15" as any,
 });
 
 // Firebase Admin SDKの初期化
