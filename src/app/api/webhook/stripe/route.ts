@@ -25,7 +25,7 @@ if (getApps().length === 0) {
       });
     }
   } catch (err) {
-    console.error("Firebase admin initialization failed:", err);
+    console.error("Firebase admin initialization failed in stripe webhook:", err);
   }
 }
 
@@ -75,7 +75,29 @@ export async function POST(req: Request) {
             stripeSubscriptionId,
             updatedAt: new Date().toISOString(),
           }, { merge: true });
-          console.log(`User ${userId} successfully subscribed to plus plan.`);
+          console.log(`User ${userId} successfully subscribed to plus plan (checkout).`);
+        }
+        break;
+      }
+      case "invoice.paid": {
+        const invoice = event.data.object as any;
+        const stripeCustomerId = invoice.customer as string;
+        const stripeSubscriptionId = invoice.subscription as string;
+
+        const usersSnap = await adminDb.collection("users")
+          .where("stripeCustomerId", "==", stripeCustomerId)
+          .limit(1)
+          .get();
+
+        if (!usersSnap.empty) {
+          const userDoc = usersSnap.docs[0];
+          await userDoc.ref.set({
+            plan: "plus",
+            subscriptionStatus: "active",
+            stripeSubscriptionId,
+            updatedAt: new Date().toISOString(),
+          }, { merge: true });
+          console.log(`Invoice paid for customer ${stripeCustomerId}. Plan state verified/updated to active plus.`);
         }
         break;
       }
