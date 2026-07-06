@@ -196,18 +196,6 @@ export default function ContactPage() {
         )}
 
         <Card className="list-card legal-section">
-          <h3>メールで直接問い合わせる場合</h3>
-          <p>
-            フォームが動かない場合や、添付ファイルを送りたい場合は、次のメールアドレスまで直接ご連絡ください。
-          </p>
-          <p style={{ marginTop: 8, fontWeight: "bold" }}>
-            <a href="mailto:toiawase.kt7@gmail.com" style={{ color: "var(--primary)", textDecoration: "underline" }}>
-              toiawase.kt7@gmail.com
-            </a>
-          </p>
-        </Card>
-
-        <Card className="list-card legal-section">
           <h3>ご連絡いただきたい内容</h3>
           <ul className="legal-list">
             <li>利用端末（例: iPhone、Android、PC）</li>

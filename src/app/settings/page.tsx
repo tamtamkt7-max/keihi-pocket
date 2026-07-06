@@ -184,9 +184,9 @@ export default function SettingsPage() {
               marginBottom: 16 
             }}>
               <div>
-                <span className="subtitle" style={{ fontSize: "0.85rem", color: "var(--text-muted)", display: "block" }}>現在の状態</span>
+                <span className="subtitle" style={{ fontSize: "0.85rem", color: "var(--text-muted)", display: "block" }}>ご契約中のプラン</span>
                 <strong style={{ fontSize: "1.1rem" }}>
-                  現在のプラン：{plan === "plus" ? "プラス" : "フリー"}
+                  現在のプラン：{plan === "plus" ? "プラスプラン (広告非表示・機能制限解除)" : "フリープラン (広告表示・機能制限あり)"}
                 </strong>
               </div>
               <div>
@@ -232,99 +232,124 @@ export default function SettingsPage() {
             onClose={() => !isUpdatingPlan && setIsPlanModalOpen(false)}
           >
             <div style={{ padding: "8px 0" }}>
-              {plan === "plus" ? (
-                <>
-                  <p style={{ lineHeight: 1.6, marginBottom: 20 }}>
+              {isUpdatingPlan ? (
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "32px 0", gap: 16 }}>
+                  <div className="modal-spinner" style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: "50%",
+                    border: "3px solid var(--border)",
+                    borderTopColor: "var(--primary)",
+                    animation: "modal-spin 1s linear infinite"
+                  }} />
+                  <span style={{ fontSize: "0.95rem", color: "var(--text)", fontWeight: "bold", textAlign: "center", lineHeight: 1.6 }}>
                     {useStripe 
-                      ? "プラスプランの管理画面に移動します。Stripeのマイページへ遷移します。よろしいですか？"
-                      : "広告なしプラスプランを終了し、フリープランへ変更します。よろしいですか？"}
-                  </p>
-                  <p className="subtitle" style={{ fontSize: "0.85rem", marginBottom: 24 }}>
-                    ※変更後は、月100件以上のOCR読み取りや高度な出力機能に制限が適用され、広告が表示されるようになります。
-                  </p>
-                </>
+                      ? "決済システム（Stripe）へ移動しています。\nそのまましばらくお待ちください..."
+                      : "プラン情報を更新しています。\nしばらくお待ちください..."}
+                  </span>
+                  <style>{`
+                    @keyframes modal-spin {
+                      to { transform: rotate(360deg); }
+                    }
+                  `}</style>
+                </div>
               ) : (
                 <>
-                  <p style={{ lineHeight: 1.6, marginBottom: 20 }}>
-                    {useStripe
-                      ? "広告なしプラスプラン（月額300円）の決済画面へ移動します。よろしいですか？"
-                      : "広告なしプラスプラン（月額300円）に変更します。よろしいですか？"}
-                  </p>
-                  <p className="subtitle" style={{ fontSize: "0.85rem", marginBottom: 24 }}>
-                    {useStripe 
-                      ? "※Stripeの決済ページヘ遷移します。"
-                      : "※デモ環境のため、実際の決済や請求は発生しません。"}
-                  </p>
-                </>
-              )}
+                  {plan === "plus" ? (
+                    <>
+                      <p style={{ lineHeight: 1.6, marginBottom: 20 }}>
+                        {useStripe 
+                          ? "プラスプランの管理画面に移動します。Stripeのマイページへ遷移します。よろしいですか？"
+                          : "広告なしプラスプランを終了し、フリープランへ変更します。よろしいですか？"}
+                      </p>
+                      <p className="subtitle" style={{ fontSize: "0.85rem", marginBottom: 24 }}>
+                        ※変更後は、月100件以上のOCR読み取りや高度な出力機能に制限が適用され、広告が表示されるようになります。
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p style={{ lineHeight: 1.6, marginBottom: 20 }}>
+                        {useStripe
+                          ? "広告なしプラスプラン（月額300円）の決済画面へ移動します。よろしいですか？"
+                          : "広告なしプラスプラン（月額300円）に変更します。よろしいですか？"}
+                      </p>
+                      <p className="subtitle" style={{ fontSize: "0.85rem", marginBottom: 24 }}>
+                        {useStripe 
+                          ? "※Stripeの決済ページヘ遷移します。"
+                          : "※デモ環境のため、実際の決済や請求は発生しません。"}
+                      </p>
+                    </>
+                  )}
 
-              <div style={{ display: "flex", gap: 12, justifyContent: "flex-end", marginTop: 16 }}>
-                <Button
-                  variant="ghost"
-                  onClick={() => setIsPlanModalOpen(false)}
-                  disabled={isUpdatingPlan}
-                >
-                  キャンセル
-                </Button>
-                <Button
-                  onClick={async () => {
-                    setIsUpdatingPlan(true);
-                    try {
-                      if (useStripe && profile) {
-                        if (plan === "free") {
-                          const res = await fetch("/api/stripe/checkout", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ userId: profile.id, email: profile.email }),
-                          });
-                          const data = await res.json();
-                          if (data.url) {
-                            window.location.href = data.url;
-                            return;
-                          } else {
-                            throw new Error(data.error || "Checkout session creation failed");
-                          }
-                        } else {
-                          if (profile.stripeCustomerId) {
-                            const res = await fetch("/api/stripe/portal", {
-                              method: "POST",
-                              headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify({ stripeCustomerId: profile.stripeCustomerId }),
-                            });
-                            const data = await res.json();
-                            if (data.url) {
-                              window.location.href = data.url;
-                              return;
+                  <div style={{ display: "flex", gap: 12, justifyContent: "flex-end", marginTop: 16 }}>
+                    <Button
+                      variant="ghost"
+                      onClick={() => setIsPlanModalOpen(false)}
+                      disabled={isUpdatingPlan}
+                    >
+                      キャンセル
+                    </Button>
+                    <Button
+                      onClick={async () => {
+                        setIsUpdatingPlan(true);
+                        try {
+                          if (useStripe && profile) {
+                            if (plan === "free") {
+                              const res = await fetch("/api/stripe/checkout", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ userId: profile.id, email: profile.email }),
+                              });
+                              const data = await res.json();
+                              if (data.url) {
+                                window.location.href = data.url;
+                                return;
+                              } else {
+                                throw new Error(data.error || "Checkout session creation failed");
+                              }
                             } else {
-                              throw new Error(data.error || "Billing portal session creation failed");
+                              if (profile.stripeCustomerId) {
+                                const res = await fetch("/api/stripe/portal", {
+                                  method: "POST",
+                                  headers: { "Content-Type": "application/json" },
+                                  body: JSON.stringify({ stripeCustomerId: profile.stripeCustomerId }),
+                                });
+                                const data = await res.json();
+                                if (data.url) {
+                                  window.location.href = data.url;
+                                  return;
+                                } else {
+                                  throw new Error(data.error || "Billing portal session creation failed");
+                                }
+                              }
                             }
                           }
-                        }
-                      }
 
-                      // Stripe設定が無い、またはデモフォールバックの場合
-                      const nextPlan: "free" | "plus" = plan === "plus" ? "free" : "plus";
-                      const nextStatus: "active" | "inactive" = nextPlan === "plus" ? "active" : "inactive";
-                      const updatedProfile: UserProfile = {
-                        ...profile,
-                        plan: nextPlan,
-                        subscriptionStatus: nextStatus,
-                      };
-                      await saveUserProfile(updatedProfile);
-                      setProfile(updatedProfile);
-                      setIsPlanModalOpen(false);
-                    } catch (error: any) {
-                      console.error("Failed to update plan:", error);
-                      alert(error.message || "プランの変更に失敗しました。通信状態を確認してください。");
-                    } finally {
-                      setIsUpdatingPlan(false);
-                    }
-                  }}
-                  disabled={isUpdatingPlan}
-                >
-                  {isUpdatingPlan ? "処理中..." : "変更する"}
-                </Button>
-              </div>
+                          // Stripe設定が無い、またはデモフォールバックの場合
+                          const nextPlan: "free" | "plus" = plan === "plus" ? "free" : "plus";
+                          const nextStatus: "active" | "inactive" = nextPlan === "plus" ? "active" : "inactive";
+                          const updatedProfile: UserProfile = {
+                            ...profile,
+                            plan: nextPlan,
+                            subscriptionStatus: nextStatus,
+                          };
+                          await saveUserProfile(updatedProfile);
+                          setProfile(updatedProfile);
+                          setIsPlanModalOpen(false);
+                        } catch (error: any) {
+                          console.error("Failed to update plan:", error);
+                          alert(error.message || "プランの変更に失敗しました。通信状態を確認してください。");
+                        } finally {
+                          setIsUpdatingPlan(false);
+                        }
+                      }}
+                      disabled={isUpdatingPlan}
+                    >
+                      変更する
+                    </Button>
+                  </div>
+                </>
+              )}
             </div>
           </Modal>
 
