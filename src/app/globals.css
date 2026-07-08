@@ -1202,4 +1202,110 @@ body { min-height: 100vh; }
     grid-column: 2;
     font-size: 18px;
   }
+  .quick-entry-bar {
+    width: min(calc(100% - 16px), 560px);
+    bottom: 82px;
+    padding: 6px 10px;
+  }
+  .quick-entry-input {
+    font-size: 13px;
+    padding: 6px 10px;
+  }
+  .quick-entry-input.amount {
+    width: 95px;
+  }
 }
+
+/* Quick Entry Bar Styles */
+.quick-entry-bar {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 94px;
+  width: min(calc(100% - 20px), 760px);
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(229, 231, 235, 0.95);
+  border-radius: 18px;
+  box-shadow: 0 10px 28px rgba(16, 24, 40, 0.08);
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  z-index: 99;
+  backdrop-filter: blur(14px);
+  transition: all 0.2s ease-in-out;
+}
+
+.quick-entry-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.quick-entry-input {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 14px;
+  outline: none;
+  font-weight: 500;
+  color: #111827;
+  transition: border-color 0.15s ease;
+}
+
+.quick-entry-input:focus {
+  border-color: var(--primary);
+  background: #fff;
+}
+
+.quick-entry-input.amount {
+  width: 120px;
+}
+
+.quick-entry-input.memo {
+  flex: 1;
+}
+
+.quick-entry-submit {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease;
+}
+
+.quick-entry-submit:hover {
+  background: #c2410c;
+}
+
+.quick-entry-submit:active {
+  transform: scale(0.97);
+}
+
+/* Summary metric card bold modification */
+.metric-card.dashboard-metric.expense,
+.metric-card.dashboard-metric.expense-primary-highlight {
+  border: 2px solid var(--accent, #ef4444) !important;
+  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.15) !important;
+  background: rgba(254, 242, 242, 0.6) !important;
+  transform: scale(1.01);
+  transition: transform 0.2s ease;
+}
+.metric-card.dashboard-metric.expense .metric-value,
+.metric-card.dashboard-metric.expense-primary-highlight .metric-value {
+  color: #dc2626 !important;
+  font-weight: 900 !important;
+}
+.mini-badge {
+  background: #fecaca;
+  color: #b91c1c;
+  border-radius: 4px;
+  font-weight: bold;
+}
+

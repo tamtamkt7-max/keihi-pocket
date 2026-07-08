@@ -36,11 +36,14 @@ export function RecentRecords({ items }: { items: RecordItem[] }) {
                 <span className="subtitle">
                   {formatDate(item.transactionDate)} ・ {item.recordType === "expense" ? "経費" : "売上"}
                 </span>
-                {showStatus ? (
-                  <div className="wrap">
-                    <Badge tone={status.tone}>{status.label}</Badge>
-                  </div>
-                ) : null}
+                <div className="wrap" style={{ gap: 6 }}>
+                  {showStatus && <Badge tone={status.tone}>{status.label}</Badge>}
+                  {!item.thumbnailUrl && (
+                    <Badge tone="warning" style={{ fontSize: 10, padding: "2px 6px", display: "inline-flex", alignItems: "center", gap: 3 }}>
+                      📸 画像を追加
+                    </Badge>
+                  )}
+                </div>
               </div>
               <strong className={item.recordType === "income" ? "amount-income" : ""}>{formatCurrency(item.amount)}</strong>
             </Link>

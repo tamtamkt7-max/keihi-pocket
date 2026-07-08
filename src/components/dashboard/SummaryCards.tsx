@@ -23,10 +23,14 @@ export function SummaryCards({
     <div className="grid-3 dashboard-grid">
       {items.map((item) => {
         const Icon = item.icon;
+        const isExpense = item.tone === "expense";
         return (
-          <Card key={item.label} className={`metric-card dashboard-metric ${item.tone}`}>
+          <Card key={item.label} className={`metric-card dashboard-metric ${item.tone} ${isExpense ? "expense-primary-highlight" : ""}`}>
             <div className="metric-top">
-              <span className="metric-label">{periodLabel}の{item.label}</span>
+              <span className="metric-label">
+                {periodLabel}の{item.label}
+                {isExpense && <span className="badge danger mini-badge" style={{ marginLeft: 6, fontSize: 10, padding: "2px 6px" }}>最優先</span>}
+              </span>
               <Icon size={20} />
             </div>
             <div className="metric-value">{formatCurrency(item.value)}</div>

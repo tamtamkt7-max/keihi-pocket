@@ -16,9 +16,13 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { ReceiptCaptureButton } from "@/components/records/ReceiptCaptureButton";
 import { RecordItem } from "@/types/record";
+import { QuickEntryBar } from "@/components/dashboard/QuickEntryBar";
+import { useCategories } from "@/hooks/useCategories";
+import { exportRecordsCsv } from "@/lib/exports/exportCsv";
 
 export default function DashboardPage() {
   const { user, isDemoMode } = useAuth();
+  const { items: categories } = useCategories(user?.uid);
   const [records, setRecords] = useState<RecordItem[]>([]);
   const [recent, setRecent] = useState<RecordItem[]>([]);
   const [period, setPeriod] = useState<"month" | "year">("month");
@@ -38,6 +42,28 @@ export default function DashboardPage() {
       }
     })();
   }, [user]);
+
+  function handleQuickEntrySuccess(optimisticRecord: RecordItem, realRecordPromise: Promise<string>) {
+    // 楽観的UI更新
+    setRecords((prev) => [optimisticRecord, ...prev]);
+    setRecent((prev) => [optimisticRecord, ...prev].slice(0, 5));
+
+    realRecordPromise
+      .then(async () => {
+        if (!user) return;
+        // 最新データを再取得して正しく再マッピング
+        const [all, latest] = await Promise.all([getRecords(user.uid), getRecentRecords(user.uid)]);
+        setRecords(all);
+        setRecent(latest);
+      })
+      .catch((err) => {
+        console.error("Quick entry save failed:", err);
+        // 失敗したらロールバック
+        setRecords((prev) => prev.filter((r) => r.id !== optimisticRecord.id));
+        setRecent((prev) => prev.filter((r) => r.id !== optimisticRecord.id));
+        alert("登録に失敗しました。通信環境をご確認ください。");
+      });
+  }
 
   const now = new Date();
   const currentMonthKey = now.toISOString().slice(0, 7);
@@ -106,13 +132,24 @@ export default function DashboardPage() {
               <span className="badge primary">{periodLabel}</span>
               <h2>{period === "month" ? "今月のまとめ" : "今年のまとめ"}</h2>
             </div>
-            <div className="segmented-control" role="tablist" aria-label="表示期間">
-              <button type="button" className={period === "month" ? "active" : ""} onClick={() => setPeriod("month")}>
-                月
-              </button>
-              <button type="button" className={period === "year" ? "active" : ""} onClick={() => setPeriod("year")}>
-                年
-              </button>
+            <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+              {user && (
+                <Button
+                  variant="secondary"
+                  onClick={() => exportRecordsCsv(targetRecords, categories)}
+                  style={{ minHeight: 36, padding: "0 12px", fontSize: 12, fontWeight: 700 }}
+                >
+                  CSV出力
+                </Button>
+              )}
+              <div className="segmented-control" role="tablist" aria-label="表示期間">
+                <button type="button" className={period === "month" ? "active" : ""} onClick={() => setPeriod("month")}>
+                  月
+                </button>
+                <button type="button" className={period === "year" ? "active" : ""} onClick={() => setPeriod("year")}>
+                  年
+                </button>
+              </div>
             </div>
           </section>
 
@@ -140,6 +177,7 @@ export default function DashboardPage() {
           <RecentRecords items={recent} />
 
         </div>
+        {user && <QuickEntryBar userId={user.uid} onSuccess={handleQuickEntrySuccess} />}
       </AppShell>
     </AuthGuard>
   );
