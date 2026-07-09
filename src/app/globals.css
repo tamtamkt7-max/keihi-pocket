@@ -1203,16 +1203,18 @@ body { min-height: 100vh; }
     font-size: 18px;
   }
   .quick-entry-bar {
-    width: min(calc(100% - 16px), 560px);
+    width: calc(100% - 32px);
+    max-width: 560px;
     bottom: 82px;
     padding: 6px 10px;
   }
   .quick-entry-input {
     font-size: 13px;
     padding: 6px 10px;
+    min-width: 0;
   }
   .quick-entry-input.amount {
-    width: 95px;
+    flex: 0 1 95px;
   }
 }
 
@@ -1252,6 +1254,7 @@ body { min-height: 100vh; }
   font-weight: 500;
   color: #111827;
   transition: border-color 0.15s ease;
+  min-width: 0;
 }
 
 .quick-entry-input:focus {
@@ -1260,11 +1263,12 @@ body { min-height: 100vh; }
 }
 
 .quick-entry-input.amount {
-  width: 120px;
+  flex: 0 1 120px;
 }
 
 .quick-entry-input.memo {
   flex: 1;
+  min-width: 0;
 }
 
 .quick-entry-submit {
@@ -1278,6 +1282,7 @@ body { min-height: 100vh; }
   cursor: pointer;
   white-space: nowrap;
   transition: background 0.15s ease;
+  flex-shrink: 0;
 }
 
 .quick-entry-submit:hover {
